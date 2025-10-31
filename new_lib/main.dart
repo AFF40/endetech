@@ -9,7 +9,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
-  runApp(MyApp(isLoggedIn: isLoggedIn));
+  final keepLoggedIn = prefs.getBool('keepLoggedIn') ?? false;
+  runApp(MyApp(isLoggedIn: isLoggedIn && keepLoggedIn));
 }
 
 class MyApp extends StatefulWidget {
