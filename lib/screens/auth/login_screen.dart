@@ -1,7 +1,9 @@
-import 'package:endetech/constants/app_strings.dart';
-import 'package:endetech/screens/auth/registration_screen.dart';
-import 'package:endetech/screens/dashboard/dashboard_screen.dart';
+import '../../constants/app_strings.dart';
+
 import 'package:flutter/material.dart';
+
+import '../dashboard/dashboard_screen.dart';
+import 'registration_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -24,6 +26,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Get the strings for the current locale
+    final strings = AppStrings.of(context);
+
     return Scaffold(
       body: SafeArea(
         child: LayoutBuilder(
@@ -42,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const FlutterLogo(size: 80),
                         const SizedBox(height: 24),
                         Text(
-                          AppStrings.welcomeBack,
+                          strings.welcomeBack,
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                 fontWeight: FontWeight.bold,
@@ -50,28 +55,40 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          AppStrings.signInToContinue,
+                          strings.signInToContinue,
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                         const SizedBox(height: 48),
                         TextFormField(
                           controller: _usernameController,
-                          decoration: const InputDecoration(
-                            labelText: AppStrings.username,
-                            prefixIcon: Icon(Icons.person_outline),
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: strings.username,
+                            prefixIcon: const Icon(Icons.person_outline),
+                            border: const OutlineInputBorder(),
                           ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return strings.pleaseEnterUsername;
+                            }
+                            return null;
+                          },
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _passwordController,
                           obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: AppStrings.password,
-                            prefixIcon: Icon(Icons.lock_outline),
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: strings.password,
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            border: const OutlineInputBorder(),
                           ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return strings.pleaseEnterPassword;
+                            }
+                            return null;
+                          },
                         ),
                         const SizedBox(height: 24),
                         ElevatedButton(
@@ -82,19 +99,19 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           onPressed: () {
-                            // Bypassing validation for now
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text(AppStrings.loggingIn)),
-                            );
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (context) => const DashboardScreen()),
-                            );
+                            if (_formKey.currentState!.validate()) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(strings.loggingIn)),
+                              );
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (context) => const DashboardScreen()),
+                              );
+                            }
                           },
-                          child: const Text(
-                            AppStrings.logIn,
-                            style: TextStyle(fontSize: 16),
+                          child: Text(
+                            strings.logIn,
+                            style: const TextStyle(fontSize: 16),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -105,7 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               MaterialPageRoute(builder: (context) => const RegistrationScreen()),
                             );
                           },
-                          child: const Text(AppStrings.noAccount),
+                          child: Text(strings.noAccount),
                         ),
                       ],
                     ),

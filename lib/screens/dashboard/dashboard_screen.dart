@@ -1,13 +1,14 @@
-import 'package:endetech/constants/app_strings.dart';
-import 'package:endetech/screens/auth/login_screen.dart';
-import 'package:endetech/screens/equipments/equipments_list_screen.dart';
-import 'package:endetech/screens/maintenances/maintenances_list_screen.dart';
-import 'package:endetech/screens/reports/datasheets_report_screen.dart';
-import 'package:endetech/screens/settings/audit_log_screen.dart';
-import 'package:endetech/screens/settings/system_parameters_screen.dart';
-import 'package:endetech/screens/settings/user_management_screen.dart';
-import 'package:endetech/screens/tasks/tasks_list_screen.dart';
-import 'package:endetech/screens/technicians/technicians_list_screen.dart';
+import '../../constants/app_strings.dart';
+import '../../main.dart';
+import '../auth/login_screen.dart';
+import '../equipments/equipments_list_screen.dart';
+import '../maintenances/maintenances_list_screen.dart';
+import '../reports/datasheets_report_screen.dart';
+import '../settings/audit_log_screen.dart';
+import '../settings/system_parameters_screen.dart';
+import '../settings/user_management_screen.dart';
+import '../tasks/tasks_list_screen.dart';
+import '../technicians/technicians_list_screen.dart';
 import 'package:flutter/material.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -15,45 +16,46 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppStrings.dashboard),
+        title: Text(strings.dashboard),
         actions: const [_SettingsMenu()],
       ),
       body: Center(
         child: Container(
-          // Constrain the width to control the number of columns and button size
-          constraints: const BoxConstraints(maxWidth: 510), // (150 * 3) + (16 * 2) = 482. Extra for padding.
+          constraints: const BoxConstraints(maxWidth: 510),
           padding: const EdgeInsets.all(16.0),
           child: Wrap(
-            spacing: 16.0, // Horizontal space between cards
-            runSpacing: 16.0, // Vertical space between rows
+            spacing: 16.0,
+            runSpacing: 16.0,
             alignment: WrapAlignment.center,
-            children: const [
+            children: [
               _DashboardCard(
                 icon: Icons.computer,
-                title: AppStrings.equipmentManagement,
-                screen: EquipmentsListScreen(),
+                title: strings.equipmentManagement,
+                screen: const EquipmentsListScreen(),
               ),
               _DashboardCard(
                 icon: Icons.people,
-                title: AppStrings.technicianManagement,
-                screen: TechniciansListScreen(),
+                title: strings.technicianManagement,
+                screen: const TechniciansListScreen(),
               ),
               _DashboardCard(
                 icon: Icons.calendar_today,
-                title: AppStrings.maintenancePlanning,
-                screen: MaintenancesListScreen(),
+                title: strings.maintenancePlanning,
+                screen: const MaintenancesListScreen(),
               ),
               _DashboardCard(
                 icon: Icons.check_circle_outline,
-                title: AppStrings.taskManagement,
-                screen: TasksListScreen(),
+                title: strings.taskManagement,
+                screen: const TasksListScreen(),
               ),
               _DashboardCard(
                 icon: Icons.bar_chart,
-                title: AppStrings.reports,
-                screen: DatasheetsReportScreen(),
+                title: strings.reports,
+                screen: const DatasheetsReportScreen(),
               ),
             ],
           ),
@@ -77,7 +79,7 @@ class _DashboardCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 150, // This fixed width is the key to preventing growth
+      width: 150,
       height: 135,
       child: Card(
         elevation: 4.0,
@@ -119,53 +121,62 @@ class _SettingsMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final myAppState = MyApp.of(context);
+    final strings = AppStrings.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return PopupMenuButton<String>(
       onSelected: (value) {
         switch (value) {
-          case AppStrings.userManagement:
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const UserManagementScreen()),
-            );
+          case 'user_management':
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const UserManagementScreen()));
             break;
-          case AppStrings.systemParameters:
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SystemParametersScreen()),
-            );
+          case 'system_parameters':
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const SystemParametersScreen()));
             break;
-          case AppStrings.auditLog:
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AuditLogScreen()),
-            );
+          case 'audit_log':
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const AuditLogScreen()));
             break;
-          case AppStrings.logout:
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  (route) => false,
-            );
+          case 'logout':
+            Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const LoginScreen()), (route) => false);
+            break;
+          case 'toggle_dark_mode':
+            myAppState.changeTheme(isDarkMode ? ThemeMode.light : ThemeMode.dark);
+            break;
+          case 'set_lang_en':
+            myAppState.changeLanguage(const Locale('en'));
+            break;
+          case 'set_lang_es':
+            myAppState.changeLanguage(const Locale('es'));
             break;
         }
       },
       itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-        const PopupMenuItem<String>(
-          value: AppStrings.userManagement,
-          child: Text(AppStrings.userManagement),
+        PopupMenuItem<String>(
+          value: 'user_management',
+          child: Text(strings.userManagement),
         ),
-        const PopupMenuItem<String>(
-          value: AppStrings.systemParameters,
-          child: Text(AppStrings.systemParameters),
+        PopupMenuItem<String>(
+          value: 'system_parameters',
+          child: Text(strings.systemParameters),
         ),
-        const PopupMenuItem<String>(
-          value: AppStrings.auditLog,
-          child: Text(AppStrings.auditLog),
+        PopupMenuItem<String>(
+          value: 'audit_log',
+          child: Text(strings.auditLog),
         ),
         const PopupMenuDivider(),
-        const PopupMenuItem<String>(
-          value: AppStrings.logout,
-          child: Text(AppStrings.logout),
+        CheckedPopupMenuItem<String>(
+          value: 'toggle_dark_mode',
+          checked: isDarkMode,
+          child: Text(strings.darkMode),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem<String>(value: 'set_lang_en', child: const Text('English')),
+        PopupMenuItem<String>(value: 'set_lang_es', child: const Text('Español')),
+        const PopupMenuDivider(),
+        PopupMenuItem<String>(
+          value: 'logout',
+          child: Text(strings.logout),
         ),
       ],
     );
