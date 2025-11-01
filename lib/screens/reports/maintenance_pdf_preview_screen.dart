@@ -1,4 +1,6 @@
 import 'dart:typed_data';
+import 'package:endetech/constants/app_strings.dart';
+
 import '../../models/maintenance.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -13,26 +15,27 @@ class MaintenancePdfPreviewScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Maintenance Report Preview'),
+        title: Text(strings.reportPreview),
       ),
       body: PdfPreview(
-        build: (format) => _generatePdf(format, maintenances),
+        build: (format) => _generatePdf(format, maintenances, strings),
       ),
     );
   }
 
   Future<Uint8List> _generatePdf(
-      PdfPageFormat format, List<Maintenance> maintenances) async {
+      PdfPageFormat format, List<Maintenance> maintenances, AppStrings strings) async {
     final pdf = pw.Document();
 
     pdf.addPage(
       pw.MultiPage(
         pageFormat: format.landscape,
-        header: (context) => pw.Text('Consolidated Maintenance Report', style: pw.Theme.of(context).header2),
+        header: (context) => pw.Text(strings.datasheetReport, style: pw.Theme.of(context).header2),
         build: (context) => [
-          _buildMaintenanceTable(context, maintenances),
+          _buildMaintenanceTable(context, maintenances, strings),
         ],
       ),
     );
@@ -40,16 +43,15 @@ class MaintenancePdfPreviewScreen extends StatelessWidget {
     return pdf.save();
   }
 
-  pw.Widget _buildMaintenanceTable(pw.Context context, List<Maintenance> maintenances) {
-    final headers = ['Equipment', 'Technician', 'Type', 'Date', 'Status'];
+  pw.Widget _buildMaintenanceTable(pw.Context context, List<Maintenance> maintenances, AppStrings strings) {
+    final headers = [strings.equipment, strings.technician, strings.date, strings.status];
 
     final data = maintenances.map((maint) {
       return [
-        maint.equipment,
-        maint.technician,
-        maint.type,
-        DateFormat('dd/MM/yyyy').format(maint.date),
-        maint.status,
+        maint.equipo.codigo,
+        maint.tecnico.fullName,
+        DateFormat('dd/MM/yyyy').format(maint.fechaProgramada),
+        maint.estado,
       ];
     }).toList();
 
@@ -65,7 +67,6 @@ class MaintenancePdfPreviewScreen extends StatelessWidget {
         1: pw.Alignment.centerLeft,
         2: pw.Alignment.center,
         3: pw.Alignment.center,
-        4: pw.Alignment.center,
       },
       cellPadding: const pw.EdgeInsets.all(5),
     );

@@ -10,6 +10,7 @@ class ApiService {
   // Users & Roles
   static const String users = '$baseUrl/users';
   static String userById(int id) => '$baseUrl/users/$id';
+  static String updateUser(int id) => '$baseUrl/users/$id'; // POST for update
   static const String roles = '$baseUrl/roles';
   static String roleById(int id) => '$baseUrl/roles/$id';
 
@@ -36,6 +37,7 @@ class ApiService {
   // Organizations
   static const String organizations = '$baseUrl/organizations';
   static String organizationById(int id) => '$baseUrl/organizations/$id';
+  static String updateOrganization(int id) => '$baseUrl/organizations/$id'; // POST for update
 
   // Report Endpoints (Assuming these are still valid, not in the provided list)
   static const String equipmentReport = '$baseUrl/reports/equipment';
