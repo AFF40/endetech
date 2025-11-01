@@ -1,7 +1,9 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../api/api_service.dart';
 import '../../constants/app_strings.dart';
-
 import 'package:flutter/material.dart';
-
 import '../dashboard/dashboard_screen.dart';
 import 'registration_screen.dart';
 
@@ -14,19 +16,68 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse(ApiService.login),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': _emailController.text,
+          'password': _passwordController.text,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isLoggedIn', true);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid credentials. Please try again.')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An error occurred: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _guestLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', true);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const DashboardScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Get the strings for the current locale
     final strings = AppStrings.of(context);
 
     return Scaffold(
@@ -44,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const FlutterLogo(size: 80),
+                        Image.asset('lib/constants/icons/logo-ende.png', height: 80),
                         const SizedBox(height: 24),
                         Text(
                           strings.welcomeBack,
@@ -61,15 +112,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 48),
                         TextFormField(
-                          controller: _usernameController,
+                          controller: _emailController,
                           decoration: InputDecoration(
-                            labelText: strings.username,
-                            prefixIcon: const Icon(Icons.person_outline),
+                            labelText: strings.email,
+                            prefixIcon: const Icon(Icons.email_outlined),
                             border: const OutlineInputBorder(),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return strings.pleaseEnterUsername;
+                              return strings.pleaseEnterEmail;
                             }
                             return null;
                           },
@@ -91,28 +142,25 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                         ),
                         const SizedBox(height: 24),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          onPressed: () {
-                            if (_formKey.currentState!.validate()) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(strings.loggingIn)),
-                              );
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(builder: (context) => const DashboardScreen()),
-                              );
-                            }
-                          },
-                          child: Text(
-                            strings.logIn,
-                            style: const TextStyle(fontSize: 16),
-                          ),
+                        _isLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                onPressed: _login,
+                                child: Text(
+                                  strings.logIn,
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                              ),
+                        const SizedBox(height: 16),
+                        TextButton(
+                          onPressed: _guestLogin,
+                          child: Text(strings.continueAsGuest),
                         ),
                         const SizedBox(height: 16),
                         TextButton(

@@ -40,10 +40,10 @@ class TechnicianPdfPreviewScreen extends StatelessWidget {
   }
 
   pw.Widget _buildTechnicianTable(pw.Context context, List<Technician> technicians) {
-    final headers = ['Name', 'Specialty', 'Availability', 'Status'];
+    final headers = ['Name', 'Specialty'];
 
     final data = technicians.map((tech) {
-      return [tech.name, tech.specialty, tech.availability, tech.status];
+      return [tech.fullName, tech.especialidad];
     }).toList();
 
     return pw.Table.fromTextArray(
@@ -56,8 +56,6 @@ class TechnicianPdfPreviewScreen extends StatelessWidget {
       cellAlignments: {
         0: pw.Alignment.centerLeft,
         1: pw.Alignment.centerLeft,
-        2: pw.Alignment.center,
-        3: pw.Alignment.center,
       },
       cellPadding: const pw.EdgeInsets.all(5),
     );

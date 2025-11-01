@@ -21,6 +21,7 @@ abstract class AppStrings {
   String get allStatuses;
   String get allTypes;
   String get allBrands;
+  String get selectAll;
 
   // Login & Registration
   String get welcomeBack;
@@ -42,6 +43,7 @@ abstract class AppStrings {
   String get signUp;
   String get signingUp;
   String get alreadyHaveAccount;
+  String get continueAsGuest;
 
   // Dashboard & Settings
   String get dashboard;
@@ -57,6 +59,7 @@ abstract class AppStrings {
   String get logout;
   String get darkMode;
   String get language;
+  String get organizationManagement;
 
   // Equipment
   String get equipments;
@@ -109,6 +112,11 @@ abstract class AppStrings {
   String get taskState;
   String get taskDate;
   String get observations;
+
+  // Organizations
+  String get addOrganization;
+  String get registerEditOrganization;
+  String get deleteOrganizationConfirmation;
   
   // Reports
   String get generateReport;
@@ -133,9 +141,10 @@ class EnStrings implements AppStrings {
   @override String get allStatuses => 'All Statuses';
   @override String get allTypes => 'All Types';
   @override String get allBrands => 'All Brands';
+  @override String get selectAll => 'Select All';
   
   // Login & Registration
-  @override String get welcomeBack => 'Welcome Back!';
+  @override String get welcomeBack => 'ENDETECH';
   @override String get signInToContinue => 'Sign in to continue to Endetech';
   @override String get username => 'Username';
   @override String get pleaseEnterUsername => 'Please enter your username';
@@ -154,6 +163,7 @@ class EnStrings implements AppStrings {
   @override String get signUp => 'Sign Up';
   @override String get signingUp => 'Signing up...';
   @override String get alreadyHaveAccount => 'Already have an account? Log in';
+  @override String get continueAsGuest => 'Continue as Guest';
 
   // Dashboard & Settings
   @override String get dashboard => 'Dashboard';
@@ -169,6 +179,7 @@ class EnStrings implements AppStrings {
   @override String get logout => 'Logout';
   @override String get darkMode => 'Dark Mode';
   @override String get language => 'Language';
+  @override String get organizationManagement => 'Organization Management';
 
   // Equipment
   @override String get equipments => 'Equipments';
@@ -222,6 +233,11 @@ class EnStrings implements AppStrings {
   @override String get taskDate => 'Fecha';
   @override String get observations => 'Observaciones';
 
+  // Organizations
+  @override String get addOrganization => 'Add Organization';
+  @override String get registerEditOrganization => 'Register/Edit Organization';
+  @override String get deleteOrganizationConfirmation => 'Are you sure you want to delete this organization?';
+
   // Reports
   @override String get generateReport => 'Generar Informe';
   @override String get reportPreview => 'Vista Previa del Informe';
@@ -245,9 +261,10 @@ class EsStrings implements AppStrings {
   @override String get allStatuses => 'Todos los Estados';
   @override String get allTypes => 'Todos los Tipos';
   @override String get allBrands => 'Todas las Marcas';
+  @override String get selectAll => 'Seleccionar Todo';
   
   // Login & Registration
-  @override String get welcomeBack => '¡Bienvenido de nuevo!';
+  @override String get welcomeBack => 'ENDETECH';
   @override String get signInToContinue => 'Inicia sesión para continuar en Endetech';
   @override String get username => 'Usuario';
   @override String get pleaseEnterUsername => 'Por favor, introduce tu usuario';
@@ -266,7 +283,8 @@ class EsStrings implements AppStrings {
   @override String get signUp => 'Registrarse';
   @override String get signingUp => 'Registrando...';
   @override String get alreadyHaveAccount => '¿Ya tienes una cuenta? Inicia sesión';
-  
+  @override String get continueAsGuest => 'Continuar como Invitado';
+
   // Dashboard & Settings
   @override String get dashboard => 'Panel Principal';
   @override String get equipmentManagement => 'Gestión de Equipos';
@@ -281,6 +299,7 @@ class EsStrings implements AppStrings {
   @override String get logout => 'Cerrar Sesión';
   @override String get darkMode => 'Modo Oscuro';
   @override String get language => 'Idioma';
+  @override String get organizationManagement => 'Gestión de Organizaciones';
 
   // Equipment
   @override String get equipments => 'Equipos';
@@ -333,6 +352,11 @@ class EsStrings implements AppStrings {
   @override String get taskState => 'Estado';
   @override String get taskDate => 'Fecha';
   @override String get observations => 'Observaciones';
+
+  // Organizations
+  @override String get addOrganization => 'Añadir Organización';
+  @override String get registerEditOrganization => 'Registrar/Editar Organización';
+  @override String get deleteOrganizationConfirmation => '¿Estás seguro de que quieres eliminar esta organización?';
 
   // Reports
   @override String get generateReport => 'Generar Informe';

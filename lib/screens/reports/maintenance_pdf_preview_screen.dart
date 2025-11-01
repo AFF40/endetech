@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import '../..//models/maintenance.dart';
+import '../../models/maintenance.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';

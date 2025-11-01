@@ -1,8 +1,10 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../constants/app_strings.dart';
 import '../../main.dart';
 import '../auth/login_screen.dart';
 import '../equipments/equipments_list_screen.dart';
 import '../maintenances/maintenances_list_screen.dart';
+import '../organizations/organizations_list_screen.dart';
 import '../reports/datasheets_report_screen.dart';
 import '../settings/audit_log_screen.dart';
 import '../settings/system_parameters_screen.dart';
@@ -20,7 +22,7 @@ class DashboardScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(strings.dashboard),
+        title: Image.asset('lib/constants/icons/logo-ende.png', height: 30),
         actions: const [_SettingsMenu()],
       ),
       body: Center(
@@ -56,6 +58,11 @@ class DashboardScreen extends StatelessWidget {
                 icon: Icons.bar_chart,
                 title: strings.reports,
                 screen: const DatasheetsReportScreen(),
+              ),
+              _DashboardCard(
+                icon: Icons.business,
+                title: strings.organizationManagement,
+                screen: const OrganizationsListScreen(),
               ),
             ],
           ),
@@ -116,8 +123,36 @@ class _DashboardCard extends StatelessWidget {
   }
 }
 
-class _SettingsMenu extends StatelessWidget {
+class _SettingsMenu extends StatefulWidget {
   const _SettingsMenu();
+
+  @override
+  State<_SettingsMenu> createState() => _SettingsMenuState();
+}
+
+class _SettingsMenuState extends State<_SettingsMenu> {
+  bool _keepLoggedIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadKeepLoggedIn();
+  }
+
+  Future<void> _loadKeepLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _keepLoggedIn = prefs.getBool('keepLoggedIn') ?? false;
+    });
+  }
+
+  Future<void> _updateKeepLoggedIn(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('keepLoggedIn', value);
+    setState(() {
+      _keepLoggedIn = value;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +161,7 @@ class _SettingsMenu extends StatelessWidget {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return PopupMenuButton<String>(
-      onSelected: (value) {
+      onSelected: (value) async {
         switch (value) {
           case 'user_management':
             Navigator.push(context, MaterialPageRoute(builder: (context) => const UserManagementScreen()));
@@ -138,6 +173,9 @@ class _SettingsMenu extends StatelessWidget {
             Navigator.push(context, MaterialPageRoute(builder: (context) => const AuditLogScreen()));
             break;
           case 'logout':
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('isLoggedIn', false);
+            await _updateKeepLoggedIn(false); // Also turn off keep logged in
             Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const LoginScreen()), (route) => false);
             break;
           case 'toggle_dark_mode':
@@ -149,6 +187,7 @@ class _SettingsMenu extends StatelessWidget {
           case 'set_lang_es':
             myAppState.changeLanguage(const Locale('es'));
             break;
+          // The keep_logged_in is handled by the SwitchListTile inside the menu items
         }
       },
       itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
@@ -169,6 +208,21 @@ class _SettingsMenu extends StatelessWidget {
           value: 'toggle_dark_mode',
           checked: isDarkMode,
           child: Text(strings.darkMode),
+        ),
+        PopupMenuItem(
+          value: 'keep_logged_in',
+          child: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return SwitchListTile(
+                title: const Text('Keep me logged in'),
+                value: _keepLoggedIn,
+                onChanged: (bool value) {
+                  _updateKeepLoggedIn(value);
+                  setState(() {}); // Rebuild the menu to show the new state
+                },
+              );
+            },
+          ),
         ),
         const PopupMenuDivider(),
         PopupMenuItem<String>(value: 'set_lang_en', child: const Text('English')),

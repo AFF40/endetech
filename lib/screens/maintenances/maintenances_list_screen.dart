@@ -103,9 +103,49 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Expanded(child: DropdownButtonFormField<String>(value: _selectedType, hint: Text(strings.allTypes), onChanged: (val) => setState(() { _selectedType = val; _applyFilters(); }), items: [DropdownMenuItem(value: null, child: Text(strings.allTypes)), ..._uniqueTypes.map((t) => DropdownMenuItem(value: t, child: Text(t)))], decoration: InputDecoration(labelText: strings.type, border: const OutlineInputBorder(), isDense: true))),
+                    Expanded(
+                      child: FormField<String>(
+                        builder: (FormFieldState<String> state) {
+                          return InputDecorator(
+                            decoration: InputDecoration(labelText: strings.type, border: const OutlineInputBorder(), isDense: true),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _selectedType,
+                                hint: Text(strings.allTypes),
+                                isDense: true,
+                                onChanged: (val) => setState(() { _selectedType = val; _applyFilters(); }),
+                                items: [
+                                  DropdownMenuItem(value: null, child: Text(strings.allTypes)),
+                                  ..._uniqueTypes.map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                     const SizedBox(width: 16),
-                    Expanded(child: DropdownButtonFormField<String>(value: _selectedStatus, hint: Text(strings.allStatuses), onChanged: (val) => setState(() { _selectedStatus = val; _applyFilters(); }), items: [DropdownMenuItem(value: null, child: Text(strings.allStatuses)), ..._statuses.map((s) => DropdownMenuItem(value: s, child: Text(s)))], decoration: InputDecoration(labelText: strings.status, border: const OutlineInputBorder(), isDense: true))),
+                    Expanded(
+                      child: FormField<String>(
+                        builder: (FormFieldState<String> state) {
+                          return InputDecorator(
+                            decoration: InputDecoration(labelText: strings.status, border: const OutlineInputBorder(), isDense: true),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _selectedStatus,
+                                hint: Text(strings.allStatuses),
+                                isDense: true,
+                                onChanged: (val) => setState(() { _selectedStatus = val; _applyFilters(); }),
+                                items: [
+                                  DropdownMenuItem(value: null, child: Text(strings.allStatuses)),
+                                  ..._statuses.map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   ],
                 ),
               ],

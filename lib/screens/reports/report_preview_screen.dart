@@ -46,28 +46,28 @@ class ReportPreviewScreen extends StatelessWidget {
 
   pw.Widget _buildEquipmentTable(pw.Context context, List<Equipment> equipments) {
     final headers = [
-      'Asset Code',
-      'Name',
-      'Type',
-      'Brand',
+      'Codigo',
+      'Nombre',
+      'Tipo',
+      'Marca',
       'Org. ID',
-      'Characteristics',
-      'Status',
-      'Last Maint.',
-      'Next Maint.'
+      'Caracteristicas',
+      'Estado',
+      'Ult. Mant.',
+      'Prox. Mant.'
     ];
 
     final data = equipments.map((equipment) {
       return [
-        equipment.assetCode,
-        equipment.name,
-        equipment.type,
-        equipment.brand,
-        equipment.organizationId,
-        equipment.characteristics ?? '',
-        equipment.status,
-        DateFormat('dd/MM/yyyy').format(equipment.lastMaintenance),
-        DateFormat('dd/MM/yyyy').format(equipment.nextMaintenance),
+        equipment.codigo,
+        equipment.nombre,
+        equipment.tipo,
+        equipment.marca,
+        equipment.organizationId?.toString() ?? '',
+        equipment.characteristics,
+        equipment.estado,
+        equipment.ultimoMantenimiento != null ? DateFormat('dd/MM/yyyy').format(equipment.ultimoMantenimiento!) : '',
+        equipment.proximoMantenimiento != null ? DateFormat('dd/MM/yyyy').format(equipment.proximoMantenimiento!) : '',
       ];
     }).toList();
 
