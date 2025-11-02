@@ -1,9 +1,7 @@
-import 'dart:convert';
-import '../../api/api_service.dart';
+import '../../api_service.dart';
+import '../../constants/app_strings.dart';
 import '../../models/organization.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import '../../constants/app_strings.dart';
 import 'organization_edit_screen.dart';
 
 class OrganizationsListScreen extends StatefulWidget {
@@ -14,9 +12,12 @@ class OrganizationsListScreen extends StatefulWidget {
 }
 
 class _OrganizationsListScreenState extends State<OrganizationsListScreen> {
+  final ApiService _apiService = ApiService();
+
   List<Organization> _allOrganizations = [];
   List<Organization> _filteredOrganizations = [];
   bool _isLoading = true;
+  String _errorMessage = '';
   final _searchController = TextEditingController();
 
   @override
@@ -35,28 +36,25 @@ class _OrganizationsListScreenState extends State<OrganizationsListScreen> {
   Future<void> _fetchOrganizations() async {
     setState(() {
       _isLoading = true;
+      _errorMessage = '';
     });
-    try {
-      final response = await http.get(Uri.parse(ApiService.organizations));
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> body = json.decode(response.body);
-        if (body.containsKey('organizations') && body['organizations'] != null) {
-          final List<dynamic> data = body['organizations'];
+
+    final result = await _apiService.getOrganizations();
+
+    if (mounted) {
+      if (result['success']) {
+        final List<dynamic> data = result['data']['organizations'];
+        setState(() {
           _allOrganizations = data.map((json) => Organization.fromJson(json)).toList();
-          _filteredOrganizations = List.from(_allOrganizations);
-        } else {
-          _allOrganizations = [];
-          _filteredOrganizations = [];
-        }
+          _applyFilters();
+          _isLoading = false;
+        });
       } else {
-        throw Exception('Failed to load organizations');
+        setState(() {
+          _errorMessage = result['message'];
+          _isLoading = false;
+        });
       }
-    } catch (e) {
-      // Handle error, e.g., show a snackbar
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
@@ -64,19 +62,22 @@ class _OrganizationsListScreenState extends State<OrganizationsListScreen> {
     final query = _searchController.text.toLowerCase();
     setState(() {
       _filteredOrganizations = _allOrganizations.where((org) {
-        return org.nombre.toLowerCase().contains(query);
+        return org.nombre.toLowerCase().contains(query) || (org.description?.toLowerCase().contains(query) ?? false);
       }).toList();
     });
   }
 
   Future<void> _deleteOrganization(int id) async {
-    final response = await http.delete(Uri.parse('${ApiService.organizations}/$id'));
-    if (response.statusCode == 200 || response.statusCode == 204) {
-      _fetchOrganizations();
-    } else {
+    final result = await _apiService.deleteOrganization(id);
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to delete organization.')),
+        SnackBar(content: Text(result['success'] 
+            ? (result['data']?['message'] ?? 'Organización eliminada') 
+            : result['message'])),
       );
+      if (result['success']) {
+        _fetchOrganizations();
+      }
     }
   }
 
@@ -86,7 +87,7 @@ class _OrganizationsListScreenState extends State<OrganizationsListScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(strings.delete),
-          content: Text(strings.deleteOrganizationConfirmation),
+          content: Text('¿Estás seguro de que quieres eliminar la organización ${organization.nombre}?'), // TODO: Internationalize
           actions: <Widget>[
             TextButton(child: Text(strings.cancel), onPressed: () => Navigator.of(context).pop()),
             TextButton(
@@ -112,21 +113,36 @@ class _OrganizationsListScreenState extends State<OrganizationsListScreen> {
     }
   }
 
+  Widget _buildErrorView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(_errorMessage, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          ElevatedButton(onPressed: _fetchOrganizations, child: const Text('Reintentar')), // TODO: Internationalize
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Organizations')),
+      appBar: AppBar(title: Text(strings.organizationManagement)),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
+          : _errorMessage.isNotEmpty
+            ? _buildErrorView()
+            : Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Search by name...',
+                      hintText: 'Buscar por nombre...', // TODO: Internationalize
                       prefixIcon: const Icon(Icons.search),
                       border: const OutlineInputBorder(),
                     ),
@@ -139,15 +155,15 @@ class _OrganizationsListScreenState extends State<OrganizationsListScreen> {
                       constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
                       child: DataTable(
                         columns: [
-                          const DataColumn(label: Text('Nombre')),
-                          const DataColumn(label: Text('Description')),
+                          DataColumn(label: Text(strings.name)),
+                          DataColumn(label: Text(strings.description)),
                           DataColumn(label: Text(strings.actions)),
                         ],
                         rows: _filteredOrganizations.map((org) {
                           return DataRow(
                             cells: [
                               DataCell(Text(org.nombre)),
-                              DataCell(Text(org.description)),
+                              DataCell(Text(org.description ?? '')),
                               DataCell(
                                 Row(
                                   children: [

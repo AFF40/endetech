@@ -1,6 +1,4 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../../api/api_service.dart';
+import '../../api_service.dart';
 import '../../constants/app_strings.dart';
 import '../../models/technician.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +13,9 @@ class TechnicianEditScreen extends StatefulWidget {
 }
 
 class _TechnicianEditScreenState extends State<TechnicianEditScreen> {
+  final _apiService = ApiService();
   final _formKey = GlobalKey<FormState>();
+  
   late TextEditingController _nombreController;
   late TextEditingController _primerApellidoController;
   late TextEditingController _segundoApellidoController;
@@ -47,41 +47,34 @@ class _TechnicianEditScreenState extends State<TechnicianEditScreen> {
       _isLoading = true;
     });
 
-    final isEditing = widget.technician != null;
-    final url = isEditing
-        ? '${ApiService.tecnicos}/${widget.technician!.id}'
-        : ApiService.tecnicos;
-
-    final body = {
+    final data = {
       'nombre': _nombreController.text,
       'primer_apellido': _primerApellidoController.text,
       'segundo_apellido': _segundoApellidoController.text,
       'especialidad': _especialidadController.text,
     };
 
-    try {
-      final response = isEditing
-          ? await http.put(Uri.parse(url), headers: {'Content-Type': 'application/json'}, body: jsonEncode(body))
-          : await http.post(Uri.parse(url), headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
+    final isEditing = widget.technician != null;
+    final result = isEditing
+        ? await _apiService.updateTecnico(widget.technician!.id, data)
+        : await _apiService.createTecnico(data);
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Technician saved successfully!')),
-        );
-        Navigator.pop(context, true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save technician: ${response.body}')),
-        );
-      }
-    } catch (e) {
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (mounted) {
+      final message = result['success'] 
+          ? (result['data']?['message'] ?? (isEditing ? 'Técnico actualizado' : 'Técnico creado'))
+          : result['message'];
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An error occurred: $e')),
+        SnackBar(content: Text(message)),
       );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
+
+      if (result['success']) {
+        Navigator.pop(context, true); // Return true to refresh list
+      }
     }
   }
 
@@ -99,33 +92,34 @@ class _TechnicianEditScreenState extends State<TechnicianEditScreen> {
             children: [
               TextFormField(
                 controller: _nombreController,
-                decoration: const InputDecoration(labelText: 'Nombre', border: OutlineInputBorder()),
-                validator: (value) => (value == null || value.isEmpty) ? 'Please enter a name' : null,
+                decoration: const InputDecoration(labelText: 'Nombre', border: OutlineInputBorder()), // TODO: Internationalize
+                validator: (value) => (value == null || value.isEmpty) ? 'El nombre es requerido' : null, // TODO: Internationalize
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _primerApellidoController,
-                decoration: const InputDecoration(labelText: 'Primer Apellido', border: OutlineInputBorder()),
-                validator: (value) => (value == null || value.isEmpty) ? 'Please enter a last name' : null,
+                decoration: const InputDecoration(labelText: 'Primer Apellido', border: OutlineInputBorder()), // TODO: Internationalize
+                validator: (value) => (value == null || value.isEmpty) ? 'El primer apellido es requerido' : null, // TODO: Internationalize
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _segundoApellidoController,
-                decoration: const InputDecoration(labelText: 'Segundo Apellido (Optional)', border: OutlineInputBorder()),
+                decoration: const InputDecoration(labelText: 'Segundo Apellido (Opcional)', border: OutlineInputBorder()), // TODO: Internationalize
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _especialidadController,
                 decoration: InputDecoration(labelText: strings.specialty, border: const OutlineInputBorder()),
+                validator: (value) => (value == null || value.isEmpty) ? 'La especialidad es requerida' : null, // TODO: Internationalize
               ),
               const SizedBox(height: 32),
-              _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                      onPressed: _saveTechnician,
-                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                      child: Text(strings.save),
-                    ),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _saveTechnician,
+                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                child: _isLoading
+                    ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white))
+                    : Text(strings.save),
+              ),
             ],
           ),
         ),

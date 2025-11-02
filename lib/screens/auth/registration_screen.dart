@@ -1,3 +1,4 @@
+import '../../api_service.dart';
 import '../../constants/app_strings.dart';
 import 'package:flutter/material.dart';
 
@@ -10,16 +11,53 @@ class RegistrationScreen extends StatefulWidget {
 
 class _RegistrationScreenState extends State<RegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _apiService = ApiService();
+  bool _isLoading = false;
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _register() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      final result = await _apiService.register({
+        'name': _nameController.text,
+        'email': _emailController.text,
+        'password': _passwordController.text,
+        'password_confirmation': _confirmPasswordController.text,
+      });
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (mounted) {
+        final strings = AppStrings.of(context);
+        if (result['success']) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(strings.registrationSuccess)),
+          );
+          Navigator.pop(context); // Volver a la pantalla de login
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'])),
+          );
+        }
+      }
+    }
   }
 
   @override
@@ -54,6 +92,21 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               ),
                         ),
                         const SizedBox(height: 48),
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: InputDecoration(
+                            labelText: strings.name,
+                            prefixIcon: const Icon(Icons.person_outline),
+                            border: const OutlineInputBorder(),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return strings.pleaseEnterName;
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
                         TextFormField(
                           controller: _emailController,
                           decoration: InputDecoration(
@@ -111,17 +164,17 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          onPressed: () {
-                            if (_formKey.currentState!.validate()) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(strings.signingUp)),
-                              );
-                            }
-                          },
-                          child: Text(
-                            strings.signUp,
-                            style: const TextStyle(fontSize: 16),
-                          ),
+                          onPressed: _isLoading ? null : _register,
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(color: Colors.white),
+                                )
+                              : Text(
+                                  strings.signUp,
+                                  style: const TextStyle(fontSize: 16),
+                                ),
                         ),
                         const SizedBox(height: 16),
                         TextButton(

@@ -1,6 +1,4 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../../api/api_service.dart';
+import '../../api_service.dart';
 import '../../constants/app_strings.dart';
 import '../../models/equipment.dart';
 import 'package:flutter/material.dart';
@@ -16,9 +14,13 @@ class EquipmentsListScreen extends StatefulWidget {
 }
 
 class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
+  final ApiService _apiService = ApiService();
+
   List<Equipment> _allEquipments = [];
   List<Equipment> _filteredEquipments = [];
   bool _isLoading = true;
+  String _errorMessage = '';
+
   final _searchController = TextEditingController();
   final Set<Equipment> _selectedEquipments = {};
   int _sortColumnIndex = 0;
@@ -47,33 +49,29 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
   Future<void> _fetchEquipments() async {
     setState(() {
       _isLoading = true;
+      _errorMessage = '';
     });
-    try {
-      final response = await http.get(Uri.parse(ApiService.equipos));
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> body = json.decode(response.body);
-        if (body.containsKey('equipos') && body['equipos'] != null) {
-          final List<dynamic> data = body['equipos'];
+
+    final result = await _apiService.getEquipos();
+
+    if (mounted) {
+      if (result['success']) {
+        final List<dynamic> data = result['data']['equipos'];
+        setState(() {
           _allEquipments = data.map((json) => Equipment.fromJson(json)).toList();
-          _filteredEquipments = List.from(_allEquipments);
-          // Dynamically populate filters
-          _uniqueBrands = _allEquipments.map((e) => e.marca).toSet().toList();
-          _uniqueTypes = _allEquipments.map((e) => e.tipo).toSet().toList();
-        } else {
+          _uniqueBrands = _allEquipments.map((e) => e.marca).where((e) => e.isNotEmpty).toSet().toList();
+          _uniqueTypes = _allEquipments.map((e) => e.tipo).where((e) => e.isNotEmpty).toSet().toList();
+          _applyFilters();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = result['message'];
+          _isLoading = false;
           _allEquipments = [];
           _filteredEquipments = [];
-        }
-      } else {
-        throw Exception('Failed to load equipments');
+        });
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching equipments: ${e.toString()}')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
@@ -121,13 +119,16 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
   }
 
   Future<void> _deleteEquipment(int id) async {
-    final response = await http.delete(Uri.parse('${ApiService.equipos}/$id'));
-    if (response.statusCode == 200 || response.statusCode == 204) {
-      _fetchEquipments(); // Refresh the list
-    } else {
+    final result = await _apiService.deleteEquipo(id);
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to delete equipment.')),
+        SnackBar(content: Text(result['success'] 
+            ? (result['data']?['message'] ?? 'Equipo eliminado') 
+            : result['message'])),
       );
+      if (result['success']) {
+        _fetchEquipments();
+      }
     }
   }
 
@@ -137,7 +138,7 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(strings.delete),
-          content: Text('Are you sure you want to delete ${equipment.nombre}?'),
+          content: Text('¿Estás seguro de que quieres eliminar ${equipment.nombre}?'), // TODO: Internationalize
           actions: <Widget>[
             TextButton(child: Text(strings.cancel), onPressed: () => Navigator.of(context).pop()),
             TextButton(
@@ -162,7 +163,20 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
       _fetchEquipments();
     }
   }
-  
+
+  Widget _buildErrorView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(_errorMessage, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          ElevatedButton(onPressed: _fetchEquipments, child: const Text('Reintentar')), // TODO: Internationalize
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
@@ -170,73 +184,75 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
       appBar: AppBar(title: Text(strings.equipments)),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      TextField(controller: _searchController, decoration: InputDecoration(hintText: strings.searchEquipments, prefixIcon: const Icon(Icons.search), border: const OutlineInputBorder(), isDense: true)),
-                      const SizedBox(height: 12),
-                      Row(
+          : _errorMessage.isNotEmpty
+              ? _buildErrorView()
+              : Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
                         children: [
-                          Expanded(child: DropdownButtonFormField<String>(value: _selectedBrand, hint: Text(strings.allBrands), onChanged: (val) => setState(() { _selectedBrand = val; _applyFilters(); }), items: [DropdownMenuItem(value: null, child: Text(strings.allBrands)), ..._uniqueBrands.map((b) => DropdownMenuItem(value: b, child: Text(b)))], decoration: InputDecoration(labelText: strings.brand, border: const OutlineInputBorder(), isDense: true))),
-                          const SizedBox(width: 16),
-                          Expanded(child: DropdownButtonFormField<String>(value: _selectedStatus, hint: Text(strings.allStatuses), onChanged: (val) => setState(() { _selectedStatus = val; _applyFilters(); }), items: [DropdownMenuItem(value: null, child: Text(strings.allStatuses)), ..._statuses.map((s) => DropdownMenuItem(value: s, child: Text(s)))], decoration: InputDecoration(labelText: strings.status, border: const OutlineInputBorder(), isDense: true))),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(value: _selectedType, hint: Text(strings.allTypes), onChanged: (val) => setState(() { _selectedType = val; _applyFilters(); }), items: [DropdownMenuItem(value: null, child: Text(strings.allTypes)), ..._uniqueTypes.map((t) => DropdownMenuItem(value: t, child: Text(t)))], decoration: InputDecoration(labelText: strings.type, border: const OutlineInputBorder(), isDense: true)),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
-                      child: DataTable(
-                        sortColumnIndex: _sortColumnIndex,
-                        sortAscending: _sortAscending,
-                        onSelectAll: (selected) => setState(() => selected! ? _selectedEquipments.addAll(_filteredEquipments) : _selectedEquipments.clear()),
-                        columns: [
-                          DataColumn(label: Text(strings.assetCode), onSort: _onSort),
-                          DataColumn(label: Text(strings.equipmentName), onSort: _onSort),
-                          DataColumn(label: Text(strings.type), onSort: _onSort),
-                          DataColumn(label: Text(strings.brand), onSort: _onSort),
-                          DataColumn(label: Text(strings.organizationId), onSort: _onSort),
-                          DataColumn(label: Text(strings.status), onSort: _onSort),
-                          DataColumn(label: Text(strings.lastMaintenanceShort), onSort: _onSort),
-                          DataColumn(label: Text(strings.nextMaintenanceShort), onSort: _onSort),
-                          DataColumn(label: Text(strings.actions)),
-                        ],
-                        rows: _filteredEquipments.map((equipment) {
-                          return DataRow(
-                            selected: _selectedEquipments.contains(equipment),
-                            onSelectChanged: (selected) => setState(() => selected! ? _selectedEquipments.add(equipment) : _selectedEquipments.remove(equipment)),
-                            cells: [
-                              DataCell(Text(equipment.codigo)),
-                              DataCell(Text(equipment.nombre)),
-                              DataCell(Text(equipment.tipo)),
-                              DataCell(Text(equipment.marca)),
-                              DataCell(Text(equipment.organizationId?.toString() ?? '')),
-                              DataCell(Text(equipment.estado)),
-                              DataCell(Text(equipment.ultimoMantenimiento != null ? DateFormat('dd/MM/yyyy').format(equipment.ultimoMantenimiento!) : '')),
-                              DataCell(Text(equipment.proximoMantenimiento != null ? DateFormat('dd/MM/yyyy').format(equipment.proximoMantenimiento!) : '')),
-                              DataCell(Row(children: [
-                                IconButton(icon: const Icon(Icons.edit), onPressed: () => _navigateToEditScreen(equipment)),
-                                IconButton(icon: const Icon(Icons.print), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PdfPreviewScreen(equipments: [equipment])))),
-                                IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _showDeleteConfirmation(context, equipment, strings)),
-                              ])),
+                          TextField(controller: _searchController, decoration: InputDecoration(hintText: strings.searchEquipments, prefixIcon: const Icon(Icons.search), border: const OutlineInputBorder(), isDense: true)),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(child: DropdownButtonFormField<String>(value: _selectedBrand, hint: Text(strings.allBrands), onChanged: (val) => setState(() { _selectedBrand = val; _applyFilters(); }), items: [DropdownMenuItem(value: null, child: Text(strings.allBrands)), ..._uniqueBrands.map((b) => DropdownMenuItem(value: b, child: Text(b)))], decoration: InputDecoration(labelText: strings.brand, border: const OutlineInputBorder(), isDense: true))),
+                              const SizedBox(width: 16),
+                              Expanded(child: DropdownButtonFormField<String>(value: _selectedStatus, hint: Text(strings.allStatuses), onChanged: (val) => setState(() { _selectedStatus = val; _applyFilters(); }), items: [DropdownMenuItem(value: null, child: Text(strings.allStatuses)), ..._statuses.map((s) => DropdownMenuItem(value: s, child: Text(s)))], decoration: InputDecoration(labelText: strings.status, border: const OutlineInputBorder(), isDense: true))),
                             ],
-                          );
-                        }).toList(),
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(value: _selectedType, hint: Text(strings.allTypes), onChanged: (val) => setState(() { _selectedType = val; _applyFilters(); }), items: [DropdownMenuItem(value: null, child: Text(strings.allTypes)), ..._uniqueTypes.map((t) => DropdownMenuItem(value: t, child: Text(t)))], decoration: InputDecoration(labelText: strings.type, border: const OutlineInputBorder(), isDense: true)),
+                        ],
                       ),
                     ),
-                  ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
+                          child: DataTable(
+                            sortColumnIndex: _sortColumnIndex,
+                            sortAscending: _sortAscending,
+                            onSelectAll: (selected) => setState(() => selected! ? _selectedEquipments.addAll(_filteredEquipments) : _selectedEquipments.clear()),
+                            columns: [
+                              DataColumn(label: Text(strings.assetCode), onSort: _onSort),
+                              DataColumn(label: Text(strings.equipmentName), onSort: _onSort),
+                              DataColumn(label: Text(strings.type), onSort: _onSort),
+                              DataColumn(label: Text(strings.brand), onSort: _onSort),
+                              DataColumn(label: Text(strings.organizationId), onSort: _onSort),
+                              DataColumn(label: Text(strings.status), onSort: _onSort),
+                              DataColumn(label: Text(strings.lastMaintenanceShort), onSort: _onSort),
+                              DataColumn(label: Text(strings.nextMaintenanceShort), onSort: _onSort),
+                              DataColumn(label: Text(strings.actions)),
+                            ],
+                            rows: _filteredEquipments.map((equipment) {
+                              return DataRow(
+                                selected: _selectedEquipments.contains(equipment),
+                                onSelectChanged: (selected) => setState(() => selected! ? _selectedEquipments.add(equipment) : _selectedEquipments.remove(equipment)),
+                                cells: [
+                                  DataCell(Text(equipment.codigo)),
+                                  DataCell(Text(equipment.nombre)),
+                                  DataCell(Text(equipment.tipo)),
+                                  DataCell(Text(equipment.marca)),
+                                  DataCell(Text(equipment.organizationId?.toString() ?? '')),
+                                  DataCell(Text(equipment.estado)),
+                                  DataCell(Text(equipment.ultimoMantenimiento != null ? DateFormat('dd/MM/yyyy').format(equipment.ultimoMantenimiento!) : '')),
+                                  DataCell(Text(equipment.proximoMantenimiento != null ? DateFormat('dd/MM/yyyy').format(equipment.proximoMantenimiento!) : '')),
+                                  DataCell(Row(children: [
+                                    IconButton(icon: const Icon(Icons.edit), onPressed: () => _navigateToEditScreen(equipment)),
+                                    IconButton(icon: const Icon(Icons.print), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PdfPreviewScreen(equipments: [equipment])))),
+                                    IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _showDeleteConfirmation(context, equipment, strings)),
+                                  ])),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
       bottomNavigationBar: _selectedEquipments.isNotEmpty
           ? BottomAppBar(
               child: Padding(
@@ -244,7 +260,7 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PdfPreviewScreen(equipments: _selectedEquipments.toList()))),
                   icon: const Icon(Icons.picture_as_pdf),
-                  label: Text('Generate PDF for ${_selectedEquipments.length} items'),
+                  label: Text('Generar PDF para ${_selectedEquipments.length} equipos'), // TODO: Internationalize
                   style: ElevatedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: Theme.of(context).primaryColor),
                 ),
               ),

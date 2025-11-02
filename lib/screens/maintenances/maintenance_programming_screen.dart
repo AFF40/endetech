@@ -1,10 +1,8 @@
-import 'dart:convert';
 import 'package:endetech/models/equipment.dart';
 import 'package:endetech/models/maintenance.dart';
 import 'package:endetech/models/technician.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import '../../api/api_service.dart';
+import '../../api_service.dart';
 import '../../constants/app_strings.dart';
 import '../../models/task.dart';
 import 'package:flutter/material.dart';
@@ -21,11 +19,13 @@ class MaintenanceProgrammingScreen extends StatefulWidget {
 
 class _MaintenanceProgrammingScreenState
     extends State<MaintenanceProgrammingScreen> {
+  final _apiService = ApiService();
   final _formKey = GlobalKey<FormState>();
+  
   DateTime? _selectedDate;
   final _observationsController = TextEditingController();
 
-  final List<Task> _allTasks = [];
+  List<Task> _allTasks = [];
   final Set<Task> _selectedTasks = {};
   bool _areAllTasksSelected = false;
 
@@ -36,6 +36,8 @@ class _MaintenanceProgrammingScreenState
   Technician? _selectedTechnician;
 
   bool _isLoading = true;
+  String _errorMessage = '';
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -43,97 +45,84 @@ class _MaintenanceProgrammingScreenState
     _initializeScreen();
   }
 
+  @override
+  void dispose() {
+    _observationsController.dispose();
+    super.dispose();
+  }
+
   Future<void> _initializeScreen() async {
-    await Future.wait([
-      _fetchTasks(),
-      _fetchEquipments(),
-      _fetchTechnicians(),
-    ]);
-
-    if (widget.maintenanceToEdit != null) {
-      _loadMaintenanceData(widget.maintenanceToEdit!);
-    } else {
-      _selectedDate = DateTime.now();
-    }
-
     setState(() {
-      _isLoading = false;
+      _isLoading = true;
+      _errorMessage = '';
     });
+
+    try {
+      final results = await Future.wait([
+        _apiService.getTareas(),
+        _apiService.getEquipos(),
+        _apiService.getTecnicos(),
+      ]);
+
+      final tasksResult = results[0];
+      final equipmentsResult = results[1];
+      final techniciansResult = results[2];
+
+      if (!mounted) return;
+
+      if (!tasksResult['success'] || !equipmentsResult['success'] || !techniciansResult['success']) {
+        setState(() {
+          _errorMessage = tasksResult['message'] ?? equipmentsResult['message'] ?? techniciansResult['message'] ?? 'Error cargando datos';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      setState(() {
+        _allTasks = (tasksResult['data']['tareas'] as List).map((t) => Task.fromJson(t)).toList();
+        _equipments = (equipmentsResult['data']['equipos'] as List).map((e) => Equipment.fromJson(e)).toList();
+        _technicians = (techniciansResult['data']['tecnicos'] as List).map((t) => Technician.fromJson(t)).toList();
+
+        if (widget.maintenanceToEdit != null) {
+          _loadMaintenanceData(widget.maintenanceToEdit!);
+        } else {
+          _selectedDate = DateTime.now();
+        }
+        
+        _isLoading = false;
+      });
+
+    } catch (e) {
+      if(mounted){
+        setState(() {
+          _errorMessage = 'Ocurrió un error inesperado.';
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   void _loadMaintenanceData(Maintenance maintenance) {
     _selectedDate = maintenance.fechaProgramada;
-    _selectedEquipment = maintenance.equipo;
-    _selectedTechnician = maintenance.tecnico;
     _observationsController.text = maintenance.observaciones ?? '';
 
+    try {
+      _selectedEquipment = _equipments.firstWhere((e) => e.id == maintenance.equipo?.id);
+    } on StateError {
+      _selectedEquipment = null;
+    }
+
+    try {
+      _selectedTechnician = _technicians.firstWhere((t) => t.id == maintenance.tecnico?.id);
+    } on StateError {
+      _selectedTechnician = null;
+    }
+
     final taskIds = maintenance.tareas.map((t) => t.id).toSet();
-    _selectedTasks
-        .addAll(_allTasks.where((task) => taskIds.contains(task.id)));
+    _selectedTasks.addAll(_allTasks.where((task) => taskIds.contains(task.id)));
 
     if (_allTasks.isNotEmpty && _selectedTasks.length == _allTasks.length) {
       _areAllTasksSelected = true;
-    }
-  }
-
-  Future<void> _fetchTasks() async {
-    try {
-      final response = await http.get(Uri.parse(ApiService.tareas));
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> body = json.decode(response.body);
-        if (body.containsKey('tareas') && body['tareas'] != null) {
-          final List<dynamic> data = body['tareas'];
-          final tasks = data.map((json) => Task.fromJson(json)).toList();
-          tasks.sort((a, b) => a.nombre.compareTo(b.nombre));
-          setState(() {
-            _allTasks.addAll(tasks);
-          });
-        }
-      } else {
-        throw Exception('Failed to load tasks');
-      }
-    } catch (e) {
-      // Handle error
-    }
-  }
-
-  Future<void> _fetchEquipments() async {
-    try {
-      final response = await http.get(Uri.parse(ApiService.equipos));
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> body = json.decode(response.body);
-        if (body.containsKey('equipos') && body['equipos'] != null) {
-          final List<dynamic> data = body['equipos'];
-          setState(() {
-            _equipments =
-                data.map((json) => Equipment.fromJson(json)).toList();
-          });
-        }
-      } else {
-        throw Exception('Failed to load equipments');
-      }
-    } catch (e) {
-      // Handle error
-    }
-  }
-
-  Future<void> _fetchTechnicians() async {
-    try {
-      final response = await http.get(Uri.parse(ApiService.tecnicos));
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> body = json.decode(response.body);
-        if (body.containsKey('tecnicos') && body['tecnicos'] != null) {
-          final List<dynamic> data = body['tecnicos'];
-          setState(() {
-            _technicians =
-                data.map((json) => Technician.fromJson(json)).toList();
-          });
-        }
-      } else {
-        throw Exception('Failed to load technicians');
-      }
-    } catch (e) {
-      // Handle error
     }
   }
 
@@ -148,10 +137,54 @@ class _MaintenanceProgrammingScreenState
     });
   }
 
-  @override
-  void dispose() {
-    _observationsController.dispose();
-    super.dispose();
+  Future<void> _saveMaintenance() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    final data = {
+      'fecha_programada': DateFormat('yyyy-MM-dd HH:mm:ss').format(_selectedDate!),
+      'equipo_id': _selectedEquipment!.id,
+      'tecnico_id': _selectedTechnician!.id,
+      'observaciones': _observationsController.text,
+      'tareas': _selectedTasks.map((task) => task.id).toList(),
+    };
+
+    final isEditing = widget.maintenanceToEdit != null;
+    final result = isEditing
+        ? await _apiService.updateMantenimiento(widget.maintenanceToEdit!.id, data)
+        : await _apiService.createMantenimiento(data);
+
+    setState(() {
+      _isSaving = false;
+    });
+
+    if (mounted) {
+      final message = result['success'] 
+          ? (result['data']?['message'] ?? (isEditing ? 'Mantenimiento actualizado' : 'Mantenimiento creado'))
+          : result['message'];
+
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+
+      if (result['success']) {
+        Navigator.of(context).pop(true);
+      }
+    }
+  }
+
+  Widget _buildErrorView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(_errorMessage, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          ElevatedButton(onPressed: _initializeScreen, child: const Text('Reintentar')),
+        ],
+      ),
+    );
   }
 
   @override
@@ -161,12 +194,13 @@ class _MaintenanceProgrammingScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-            isEditing ? strings.registerEditTask : strings.scheduleMaintenance),
+        title: Text(isEditing ? strings.registerEditTask : strings.scheduleMaintenance),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SafeArea(
+          : _errorMessage.isNotEmpty
+            ? _buildErrorView()
+            : SafeArea(
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   return Center(
@@ -180,26 +214,17 @@ class _MaintenanceProgrammingScreenState
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               FormField<DateTime>(
+                                initialValue: _selectedDate,
                                 builder: (FormFieldState<DateTime> state) {
                                   return Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(strings.date,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium),
+                                      Text(strings.date, style: Theme.of(context).textTheme.titleMedium),
                                       const SizedBox(height: 8),
                                       Container(
                                         decoration: BoxDecoration(
-                                          border: Border.all(
-                                              color: state.hasError
-                                                  ? Theme.of(context)
-                                                      .colorScheme
-                                                      .error
-                                                  : Colors.grey.shade300),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
+                                          border: Border.all(color: state.hasError ? Theme.of(context).colorScheme.error : Colors.grey.shade300),
+                                          borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: Transform.scale(
                                           scale: 0.9,
@@ -209,225 +234,115 @@ class _MaintenanceProgrammingScreenState
                                             lastDate: DateTime(2101),
                                             onDateChanged: (newDate) {
                                               state.didChange(newDate);
-                                              setState(() {
-                                                _selectedDate = newDate;
-                                              });
+                                              setState(() => _selectedDate = newDate);
                                             },
                                           ),
                                         ),
                                       ),
                                       if (state.hasError)
                                         Padding(
-                                          padding: const EdgeInsets.only(
-                                              top: 8.0, left: 12.0),
-                                          child: Text(state.errorText!,
-                                              style: TextStyle(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .error,
-                                                  fontSize: 12)),
+                                          padding: const EdgeInsets.only(top: 8.0, left: 12.0),
+                                          child: Text(state.errorText!, style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12)),
                                         )
                                     ],
                                   );
                                 },
-                                validator: (value) {
-                                  if (_selectedDate == null) {
-                                    return 'Please select a date';
-                                  }
-                                  return null;
-                                },
+                                validator: (value) => value == null ? 'Por favor, selecciona una fecha' : null,
                               ),
                               const SizedBox(height: 16),
                               Autocomplete<Equipment>(
-                                initialValue: TextEditingValue(
-                                    text: _selectedEquipment?.codigo ?? ''),
-                                displayStringForOption: (option) =>
-                                    option.codigo,
-                                optionsBuilder:
-                                    (TextEditingValue textEditingValue) {
-                                  if (textEditingValue.text.isEmpty) {
-                                    return _equipments;
-                                  }
-                                  return _equipments.where((equipment) {
-                                    return equipment.codigo
-                                            .toLowerCase()
-                                            .contains(textEditingValue.text
-                                                .toLowerCase()) ||
-                                        equipment.nombre
-                                            .toLowerCase()
-                                            .contains(textEditingValue.text
-                                                .toLowerCase());
-                                  });
+                                initialValue: TextEditingValue(text: _selectedEquipment?.nombre ?? ''),
+                                displayStringForOption: (option) => '${option.nombre} (${option.codigo})',
+                                optionsBuilder: (TextEditingValue textEditingValue) {
+                                  if (textEditingValue.text.isEmpty) return _equipments;
+                                  return _equipments.where((e) => e.nombre.toLowerCase().contains(textEditingValue.text.toLowerCase()) || e.codigo.toLowerCase().contains(textEditingValue.text.toLowerCase()));
                                 },
-                                onSelected: (Equipment selection) {
-                                  setState(() {
-                                    _selectedEquipment = selection;
-                                  });
-                                },
-                                fieldViewBuilder: (BuildContext context,
-                                    TextEditingController fieldController,
-                                    FocusNode fieldFocusNode,
-                                    VoidCallback onFieldSubmitted) {
+                                onSelected: (Equipment selection) => setState(() => _selectedEquipment = selection),
+                                fieldViewBuilder: (context, fieldController, fieldFocusNode, onFieldSubmitted) {
                                   return TextFormField(
                                     controller: fieldController,
                                     focusNode: fieldFocusNode,
-                                    decoration: InputDecoration(
-                                      labelText: strings.equipment,
-                                      border: const OutlineInputBorder(),
-                                    ),
-                                    validator: (value) {
-                                      if (_selectedEquipment == null) {
-                                        return 'Please select an equipment';
-                                      }
-                                      return null;
-                                    },
+                                    decoration: InputDecoration(labelText: strings.equipment, border: const OutlineInputBorder()),
+                                    validator: (value) => _selectedEquipment == null ? 'Por favor, selecciona un equipo' : null,
                                   );
                                 },
                               ),
                               const SizedBox(height: 16),
                               Autocomplete<Technician>(
-                                initialValue: TextEditingValue(
-                                    text: _selectedTechnician?.fullName ?? ''),
-                                displayStringForOption: (option) =>
-                                    option.fullName,
-                                optionsBuilder:
-                                    (TextEditingValue textEditingValue) {
-                                  if (textEditingValue.text.isEmpty) {
-                                    return _technicians;
-                                  }
-                                  return _technicians.where((technician) {
-                                    return technician.fullName
-                                        .toLowerCase()
-                                        .contains(textEditingValue.text
-                                            .toLowerCase());
-                                  });
+                                initialValue: TextEditingValue(text: _selectedTechnician?.fullName ?? ''),
+                                displayStringForOption: (option) => option.fullName,
+                                optionsBuilder: (TextEditingValue textEditingValue) {
+                                  if (textEditingValue.text.isEmpty) return _technicians;
+                                  return _technicians.where((t) => t.fullName.toLowerCase().contains(textEditingValue.text.toLowerCase()));
                                 },
-                                onSelected: (Technician selection) {
-                                  setState(() {
-                                    _selectedTechnician = selection;
-                                  });
-                                },
-                                fieldViewBuilder: (BuildContext context,
-                                    TextEditingController fieldController,
-                                    FocusNode fieldFocusNode,
-                                    VoidCallback onFieldSubmitted) {
+                                onSelected: (Technician selection) => setState(() => _selectedTechnician = selection),
+                                fieldViewBuilder: (context, fieldController, fieldFocusNode, onFieldSubmitted) {
                                   return TextFormField(
                                     controller: fieldController,
                                     focusNode: fieldFocusNode,
-                                    decoration: InputDecoration(
-                                      labelText: strings.technician,
-                                      border: const OutlineInputBorder(),
-                                    ),
-                                    validator: (value) {
-                                      if (_selectedTechnician == null) {
-                                        return 'Please select a technician';
-                                      }
-                                      return null;
-                                    },
+                                    decoration: InputDecoration(labelText: strings.technician, border: const OutlineInputBorder()),
+                                    validator: (value) => _selectedTechnician == null ? 'Por favor, selecciona un técnico' : null,
                                   );
                                 },
                               ),
                               const SizedBox(height: 16),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(strings.tasks,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium),
-                                      ActionChip(
-                                        avatar: Icon(
-                                            _areAllTasksSelected
-                                                ? Icons.check_box
-                                                : Icons
-                                                    .check_box_outline_blank,
-                                            size: 18),
-                                        label: Text(strings.selectAll),
-                                        onPressed: () =>
-                                            _toggleSelectAllTasks(
-                                                !_areAllTasksSelected),
+                              if(_allTasks.isNotEmpty)
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(strings.tasks, style: Theme.of(context).textTheme.titleMedium),
+                                        ActionChip(
+                                          avatar: Icon(_areAllTasksSelected ? Icons.check_box : Icons.check_box_outline_blank, size: 18),
+                                          label: Text(strings.selectAll),
+                                          onPressed: () => _toggleSelectAllTasks(!_areAllTasksSelected),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
+                                      padding: const EdgeInsets.all(12.0),
+                                      child: Wrap(
+                                        spacing: 8.0,
+                                        runSpacing: 4.0,
+                                        children: _allTasks.map((task) {
+                                          final isSelected = _selectedTasks.any((t) => t.id == task.id);
+                                          return FilterChip(
+                                            label: Text(task.nombre),
+                                            selected: isSelected,
+                                            onSelected: (bool selected) {
+                                              setState(() {
+                                                if (selected) { _selectedTasks.add(task); } else { _selectedTasks.removeWhere((t) => t.id == task.id); }
+                                                _areAllTasksSelected = _allTasks.isNotEmpty && _selectedTasks.length == _allTasks.length;
+                                              });
+                                            },
+                                            selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                                            checkmarkColor: Theme.of(context).primaryColor,
+                                          );
+                                        }).toList(),
                                       ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                          color: Colors.grey.shade300),
-                                      borderRadius: BorderRadius.circular(8),
                                     ),
-                                    padding: const EdgeInsets.all(12.0),
-                                    child: Wrap(
-                                      spacing: 8.0,
-                                      runSpacing: 4.0,
-                                      children: _allTasks.map((task) {
-                                        final isSelected = _selectedTasks
-                                            .any((t) => t.id == task.id);
-                                        return FilterChip(
-                                          label: Text(task.nombre),
-                                          selected: isSelected,
-                                          onSelected: (bool selected) {
-                                            setState(() {
-                                              if (selected) {
-                                                _selectedTasks.add(task);
-                                              } else {
-                                                _selectedTasks.removeWhere(
-                                                    (t) => t.id == task.id);
-                                              }
-                                              _areAllTasksSelected = _allTasks
-                                                      .isNotEmpty &&
-                                                  _selectedTasks.length ==
-                                                      _allTasks.length;
-                                            });
-                                          },
-                                          selectedColor: Theme.of(context)
-                                              .primaryColor
-                                              .withOpacity(0.2),
-                                          checkmarkColor:
-                                              Theme.of(context).primaryColor,
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                  ],
+                                ),
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _observationsController,
-                                decoration: InputDecoration(
-                                  labelText: strings.observations,
-                                  border: const OutlineInputBorder(),
-                                ),
+                                decoration: InputDecoration(labelText: strings.observations, border: const OutlineInputBorder()),
                                 maxLines: 3,
                               ),
                               const SizedBox(height: 32),
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 ),
-                                onPressed: () {
-                                  if (_formKey.currentState!.validate()) {
-                                    // TODO: Implement save logic with _selectedTasks and _selectedDate
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(
-                                      const SnackBar(
-                                          content:
-                                              Text('Saving Maintenance...')),
-                                    );
-                                  }
-                                },
-                                child: Text(
-                                  strings.save,
-                                  style: const TextStyle(fontSize: 16),
-                                ),
+                                onPressed: _isSaving ? null : _saveMaintenance,
+                                child: _isSaving
+                                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                    : Text(strings.save, style: const TextStyle(fontSize: 16)),
                               ),
                             ],
                           ),

@@ -1,6 +1,4 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../../api/api_service.dart';
+import '../../api_service.dart';
 import '../../constants/app_strings.dart';
 import '../../models/technician.dart';
 import 'package:flutter/material.dart';
@@ -15,9 +13,13 @@ class TechniciansListScreen extends StatefulWidget {
 }
 
 class _TechniciansListScreenState extends State<TechniciansListScreen> {
+  final ApiService _apiService = ApiService();
+  
   List<Technician> _allTechnicians = [];
   List<Technician> _filteredTechnicians = [];
   bool _isLoading = true;
+  String _errorMessage = '';
+  
   final _searchController = TextEditingController();
   final Set<Technician> _selectedTechnicians = {};
 
@@ -37,30 +39,25 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
   Future<void> _fetchTechnicians() async {
     setState(() {
       _isLoading = true;
+      _errorMessage = '';
     });
-    try {
-      final response = await http.get(Uri.parse(ApiService.tecnicos));
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> body = json.decode(response.body);
-        if (body.containsKey('tecnicos') && body['tecnicos'] != null) {
-          final List<dynamic> data = body['tecnicos'];
+
+    final result = await _apiService.getTecnicos();
+
+    if (mounted) {
+      if (result['success']) {
+        final List<dynamic> data = result['data']['tecnicos'];
+        setState(() {
           _allTechnicians = data.map((json) => Technician.fromJson(json)).toList();
-          _filteredTechnicians = List.from(_allTechnicians);
-        } else {
-          _allTechnicians = [];
-          _filteredTechnicians = [];
-        }
+          _applyFilters();
+          _isLoading = false;
+        });
       } else {
-        throw Exception('Failed to load technicians');
+        setState(() {
+          _errorMessage = result['message'];
+          _isLoading = false;
+        });
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching technicians: ${e.toString()}')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
@@ -68,20 +65,23 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
     final query = _searchController.text.toLowerCase();
     setState(() {
       _filteredTechnicians = _allTechnicians.where((tech) {
-        return tech.fullName.toLowerCase().contains(query);
+        return tech.fullName.toLowerCase().contains(query) || tech.especialidad.toLowerCase().contains(query);
       }).toList();
       _selectedTechnicians.removeWhere((item) => !_filteredTechnicians.contains(item));
     });
   }
 
   Future<void> _deleteTechnician(int id) async {
-    final response = await http.delete(Uri.parse('${ApiService.tecnicos}/$id'));
-    if (response.statusCode == 200 || response.statusCode == 204) {
-      _fetchTechnicians();
-    } else {
+    final result = await _apiService.deleteTecnico(id);
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to delete technician.')),
+        SnackBar(content: Text(result['success'] 
+            ? (result['data']?['message'] ?? 'Técnico eliminado') 
+            : result['message'])),
       );
+      if (result['success']) {
+        _fetchTechnicians();
+      }
     }
   }
 
@@ -91,7 +91,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(strings.delete),
-          content: Text('Are you sure you want to delete ${technician.fullName}?'),
+          content: Text('¿Estás seguro de que quieres eliminar a ${technician.fullName}?'), // TODO: Internationalize
           actions: <Widget>[
             TextButton(child: Text(strings.cancel), onPressed: () => Navigator.of(context).pop()),
             TextButton(
@@ -116,6 +116,19 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
       _fetchTechnicians();
     }
   }
+  
+  Widget _buildErrorView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(_errorMessage, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          ElevatedButton(onPressed: _fetchTechnicians, child: const Text('Reintentar')), // TODO: Internationalize
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,7 +137,9 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
       appBar: AppBar(title: Text(strings.technicians)),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
+          : _errorMessage.isNotEmpty
+            ? _buildErrorView()
+            : Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -181,7 +196,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => TechnicianPdfPreviewScreen(technicians: _selectedTechnicians.toList()))),
                   icon: const Icon(Icons.picture_as_pdf),
-                  label: Text('Generate PDF for ${_selectedTechnicians.length} items'),
+                  label: Text('Generar PDF para ${_selectedTechnicians.length} técnicos'), // TODO: Internationalize
                   style: ElevatedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: Theme.of(context).primaryColor),
                 ),
               ),

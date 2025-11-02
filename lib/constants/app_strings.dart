@@ -39,6 +39,7 @@ abstract class AppStrings {
   String get signUpToGetStarted;
   String get email;
   String get pleaseEnterEmail;
+  String get pleaseEnterName; // Added
   String get confirmPassword;
   String get pleaseConfirmPassword;
   String get passwordsDoNotMatch;
@@ -46,6 +47,7 @@ abstract class AppStrings {
   String get signingUp;
   String get alreadyHaveAccount;
   String get continueAsGuest;
+  String get registrationSuccess; // Added
 
   // Dashboard & Settings
   String get dashboard;
@@ -164,6 +166,7 @@ class EnStrings implements AppStrings {
   @override String get signUpToGetStarted => 'Sign up to get started.';
   @override String get email => 'Email';
   @override String get pleaseEnterEmail => 'Please enter your email';
+  @override String get pleaseEnterName => 'Please enter your name'; // Added
   @override String get confirmPassword => 'Confirm Password';
   @override String get pleaseConfirmPassword => 'Please confirm your password';
   @override String get passwordsDoNotMatch => 'Passwords do not match';
@@ -171,6 +174,7 @@ class EnStrings implements AppStrings {
   @override String get signingUp => 'Signing up...';
   @override String get alreadyHaveAccount => 'Already have an account? Log in';
   @override String get continueAsGuest => 'Continue as Guest';
+  @override String get registrationSuccess => 'Registration successful. Please log in.'; // Added
 
   // Dashboard & Settings
   @override String get dashboard => 'Dashboard';
@@ -289,6 +293,7 @@ class EsStrings implements AppStrings {
   @override String get signUpToGetStarted => 'Regístrate para empezar.';
   @override String get email => 'Correo Electrónico';
   @override String get pleaseEnterEmail => 'Por favor, introduce tu correo';
+  @override String get pleaseEnterName => 'Por favor, introduce tu nombre'; // Added
   @override String get confirmPassword => 'Confirmar Contraseña';
   @override String get pleaseConfirmPassword => 'Por favor, confirma tu contraseña';
   @override String get passwordsDoNotMatch => 'Las contraseñas no coinciden';
@@ -296,6 +301,7 @@ class EsStrings implements AppStrings {
   @override String get signingUp => 'Registrando...';
   @override String get alreadyHaveAccount => '¿Ya tienes una cuenta? Inicia sesión';
   @override String get continueAsGuest => 'Continuar como Invitado';
+  @override String get registrationSuccess => 'Registro exitoso. Por favor, inicie sesión.'; // Added
 
   // Dashboard & Settings
   @override String get dashboard => 'Panel Principal';

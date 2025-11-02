@@ -1,6 +1,4 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../../api/api_service.dart';
+import '../../api_service.dart';
 import '../../constants/app_strings.dart';
 import '../../models/equipment.dart';
 import 'package:flutter/material.dart';
@@ -16,7 +14,9 @@ class EquipmentEditScreen extends StatefulWidget {
 }
 
 class _EquipmentEditScreenState extends State<EquipmentEditScreen> {
+  final _apiService = ApiService();
   final _formKey = GlobalKey<FormState>();
+  
   late TextEditingController _codigoController;
   late TextEditingController _nombreController;
   late TextEditingController _tipoController;
@@ -72,17 +72,12 @@ class _EquipmentEditScreenState extends State<EquipmentEditScreen> {
       _isLoading = true;
     });
 
-    final isEditing = widget.equipment != null;
-    final url = isEditing
-        ? '${ApiService.equipos}/${widget.equipment!.id}'
-        : ApiService.equipos;
-
-    final body = {
+    final data = {
       'codigo': _codigoController.text,
       'nombre': _nombreController.text,
       'tipo': _tipoController.text,
       'marca': _marcaController.text,
-      'organization_id': _organizationIdController.text,
+      'organization_id': int.tryParse(_organizationIdController.text),
       'estado': _estadoController.text,
       'ultimo_mantenimiento': _ultimoMantenimientoController.text,
       'proximo_mantenimiento': _proximoMantenimientoController.text,
@@ -91,30 +86,30 @@ class _EquipmentEditScreenState extends State<EquipmentEditScreen> {
       'memoria_ram': _memoriaRamController.text,
       'almacenamiento': _almacenamientoController.text,
     };
+    
+    data.removeWhere((key, value) => value == null || (value is String && value.isEmpty));
 
-    try {
-      final response = isEditing
-          ? await http.put(Uri.parse(url), headers: {'Content-Type': 'application/json'}, body: jsonEncode(body))
-          : await http.post(Uri.parse(url), headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
+    final isEditing = widget.equipment != null;
+    final result = isEditing
+        ? await _apiService.updateEquipo(widget.equipment!.id, data)
+        : await _apiService.createEquipo(data);
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Equipment saved successfully!')),
-        );
-        Navigator.pop(context, true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save equipment: ${response.body}')),
-        );
-      }
-    } catch (e) {
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (mounted) {
+      final message = result['success'] 
+          ? (result['data']?['message'] ?? (isEditing ? 'Equipo actualizado' : 'Equipo creado'))
+          : result['message'];
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An error occurred: $e')),
+        SnackBar(content: Text(message)),
       );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
+
+      if (result['success']) {
+        Navigator.pop(context, true); // Return true to refresh list
+      }
     }
   }
 
@@ -131,21 +126,43 @@ class _EquipmentEditScreenState extends State<EquipmentEditScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextFormField(controller: _codigoController, decoration: InputDecoration(labelText: strings.assetCode, border: const OutlineInputBorder())), 
+                TextFormField(
+                  controller: _codigoController,
+                  decoration: InputDecoration(labelText: strings.assetCode, border: const OutlineInputBorder()),
+                  validator: (value) => (value == null || value.isEmpty) ? 'Este campo es requerido' : null, // TODO: Internationalize
+                ),
                 const SizedBox(height: 16),
-                TextFormField(controller: _nombreController, decoration: InputDecoration(labelText: strings.equipmentName, border: const OutlineInputBorder())),
+                TextFormField(
+                  controller: _nombreController, 
+                  decoration: InputDecoration(labelText: strings.equipmentName, border: const OutlineInputBorder()),
+                  validator: (value) => (value == null || value.isEmpty) ? 'Este campo es requerido' : null, // TODO: Internationalize
+                ),
                 const SizedBox(height: 16),
                 TextFormField(controller: _tipoController, decoration: InputDecoration(labelText: strings.type, border: const OutlineInputBorder())),
                 const SizedBox(height: 16),
                 TextFormField(controller: _marcaController, decoration: InputDecoration(labelText: strings.brand, border: const OutlineInputBorder())),
                 const SizedBox(height: 16),
-                TextFormField(controller: _organizationIdController, decoration: InputDecoration(labelText: strings.organizationId, border: const OutlineInputBorder())),
+                TextFormField(
+                  controller: _organizationIdController,
+                  decoration: InputDecoration(labelText: strings.organizationId, border: const OutlineInputBorder()),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value != null && value.isNotEmpty && int.tryParse(value) == null) {
+                      return 'Debe ser un número válido'; // TODO: Internationalize
+                    }
+                    return null;
+                  },
+                ),
                 const SizedBox(height: 16),
-                TextFormField(controller: _estadoController, decoration: InputDecoration(labelText: strings.status, border: const OutlineInputBorder())),
+                TextFormField(
+                  controller: _estadoController,
+                  decoration: InputDecoration(labelText: strings.status, border: const OutlineInputBorder()),
+                  validator: (value) => (value == null || value.isEmpty) ? 'Este campo es requerido' : null, // TODO: Internationalize
+                ),
                 const SizedBox(height: 16),
-                TextFormField(controller: _ultimoMantenimientoController, decoration: InputDecoration(labelText: strings.lastMaintenanceShort, border: const OutlineInputBorder())),
+                TextFormField(controller: _ultimoMantenimientoController, decoration: InputDecoration(labelText: strings.lastMaintenanceShort, hintText: 'YYYY-MM-DD', border: const OutlineInputBorder())),
                 const SizedBox(height: 16),
-                TextFormField(controller: _proximoMantenimientoController, decoration: InputDecoration(labelText: strings.nextMaintenanceShort, border: const OutlineInputBorder())),
+                TextFormField(controller: _proximoMantenimientoController, decoration: InputDecoration(labelText: strings.nextMaintenanceShort, hintText: 'YYYY-MM-DD', border: const OutlineInputBorder())),
                 const SizedBox(height: 16),
                 TextFormField(controller: _sistemaOperativoController, decoration: InputDecoration(labelText: strings.so, border: const OutlineInputBorder())),
                 const SizedBox(height: 16),
@@ -155,13 +172,13 @@ class _EquipmentEditScreenState extends State<EquipmentEditScreen> {
                 const SizedBox(height: 16),
                 TextFormField(controller: _almacenamientoController, decoration: InputDecoration(labelText: strings.storage, border: const OutlineInputBorder())),
                 const SizedBox(height: 32),
-                _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : ElevatedButton(
-                        onPressed: _saveEquipment,
-                        style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                        child: Text(strings.save),
-                      ),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _saveEquipment,
+                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                  child: _isLoading
+                      ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white))
+                      : Text(strings.save),
+                ),
               ],
             ),
           ),

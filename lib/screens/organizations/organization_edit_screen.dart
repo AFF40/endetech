@@ -1,6 +1,4 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../../api/api_service.dart';
+import '../../api_service.dart';
 import '../../constants/app_strings.dart';
 import '../../models/organization.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +13,9 @@ class OrganizationEditScreen extends StatefulWidget {
 }
 
 class _OrganizationEditScreenState extends State<OrganizationEditScreen> {
+  final _apiService = ApiService();
   final _formKey = GlobalKey<FormState>();
+  
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   bool _isLoading = false;
@@ -41,48 +41,32 @@ class _OrganizationEditScreenState extends State<OrganizationEditScreen> {
       _isLoading = true;
     });
 
+    final data = {
+      'nombre': _nameController.text,
+      'description': _descriptionController.text,
+    };
+
     final isEditing = widget.organization != null;
-    final url = isEditing
-        ? '${ApiService.organizations}/${widget.organization!.id}'
-        : ApiService.organizations;
+    final result = isEditing
+        ? await _apiService.updateOrganization(widget.organization!.id, data)
+        : await _apiService.createOrganization(data);
 
-    try {
-      final response = isEditing
-          ? await http.put(
-              Uri.parse(url),
-              headers: {'Content-Type': 'application/json'},
-              body: jsonEncode({
-                'nombre': _nameController.text,
-                'description': _descriptionController.text,
-              }),
-            )
-          : await http.post(
-              Uri.parse(url),
-              headers: {'Content-Type': 'application/json'},
-              body: jsonEncode({
-                'nombre': _nameController.text,
-                'description': _descriptionController.text,
-              }),
-            );
+    setState(() {
+      _isLoading = false;
+    });
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Organization saved successfully!')),
-        );
-        Navigator.pop(context, true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save organization: ${response.body}')),
-        );
-      }
-    } catch (e) {
+    if (mounted) {
+      final message = result['success'] 
+          ? (result['data']?['message'] ?? (isEditing ? 'Organización actualizada' : 'Organización creada'))
+          : result['message'];
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An error occurred: $e')),
+        SnackBar(content: Text(message)),
       );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
+
+      if (result['success']) {
+        Navigator.pop(context, true); // Return true to refresh list
+      }
     }
   }
 
@@ -109,7 +93,7 @@ class _OrganizationEditScreenState extends State<OrganizationEditScreen> {
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a name';
+                    return 'El nombre es requerido'; // TODO: Internationalize
                   }
                   return null;
                 },
@@ -122,17 +106,23 @@ class _OrganizationEditScreenState extends State<OrganizationEditScreen> {
                   border: const OutlineInputBorder(),
                 ),
                 maxLines: 3,
+                 validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'La descripción es requerida'; // TODO: Internationalize
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 32),
-              _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                      onPressed: _saveOrganization,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: Text(strings.save),
-                    ),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _saveOrganization,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: _isLoading
+                    ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white))
+                    : Text(strings.save),
+              ),
             ],
           ),
         ),
