@@ -1,14 +1,21 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  //TODO: Mover a un archivo de configuración
   static const String _baseUrl = 'http://127.0.0.1:8000/api';
+  static String _languageCode = 'en'; // Default language
+
+  // --- Language Configuration ---
+  static void setLanguage(String langCode) {
+    _languageCode = langCode;
+  }
 
   // Helper para manejar las cabeceras
   Map<String, String> get _headers => {
         'Content-Type': 'application/json; charset=UTF-8',
         'Accept': 'application/json',
+        'Accept-Language': _languageCode,
         // TODO: Añadir token de autenticación cuando esté implementado
         // 'Authorization': 'Bearer $token',
       };
@@ -94,7 +101,7 @@ class ApiService {
 
   // --- Mantenimientos ---
   Future<Map<String, dynamic>> getMantenimientos() async {
-    final url = Uri.parse('$_baseUrl/mantenimientos');
+    final url = Uri.parse('$_baseUrl/mantenimientos?with=equipo.organization');
     try {
       final response = await http.get(url, headers: _headers);
       return await _handleResponse(response);
@@ -104,7 +111,7 @@ class ApiService {
   }
   
   Future<Map<String, dynamic>> getMantenimiento(int id) async {
-    final url = Uri.parse('$_baseUrl/mantenimientos/$id');
+    final url = Uri.parse('$_baseUrl/mantenimientos/$id?with=equipo.organization');
     try {
       final response = await http.get(url, headers: _headers);
       return await _handleResponse(response);
@@ -125,8 +132,9 @@ class ApiService {
 
   Future<Map<String, dynamic>> updateMantenimiento(int id, Map<String, dynamic> data) async {
     final url = Uri.parse('$_baseUrl/mantenimientos/$id');
+    final body = {...data, 'id': id};
     try {
-      final response = await http.put(url, headers: _headers, body: jsonEncode(data));
+      final response = await http.post(url, headers: _headers, body: jsonEncode(body));
       return await _handleResponse(response);
     } catch (e) {
       return _handleConnectionError(e);
@@ -146,6 +154,16 @@ class ApiService {
   // --- Organizaciones ---
   Future<Map<String, dynamic>> getOrganizations() async {
     final url = Uri.parse('$_baseUrl/organizations');
+    try {
+      final response = await http.get(url, headers: _headers);
+      return await _handleResponse(response);
+    } catch (e) {
+      return _handleConnectionError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getOrganization(int id) async {
+    final url = Uri.parse('$_baseUrl/organizations/$id');
     try {
       final response = await http.get(url, headers: _headers);
       return await _handleResponse(response);

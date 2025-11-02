@@ -64,15 +64,16 @@ class _MaintenanceProgrammingScreenState
         _apiService.getTecnicos(),
       ]);
 
+      if (!mounted) return;
+
       final tasksResult = results[0];
       final equipmentsResult = results[1];
       final techniciansResult = results[2];
 
-      if (!mounted) return;
-
       if (!tasksResult['success'] || !equipmentsResult['success'] || !techniciansResult['success']) {
+        final strings = AppStrings.of(context);
         setState(() {
-          _errorMessage = tasksResult['message'] ?? equipmentsResult['message'] ?? techniciansResult['message'] ?? 'Error cargando datos';
+          _errorMessage = tasksResult['message'] ?? equipmentsResult['message'] ?? techniciansResult['message'] ?? strings.errorLoadingData;
           _isLoading = false;
         });
         return;
@@ -94,8 +95,9 @@ class _MaintenanceProgrammingScreenState
 
     } catch (e) {
       if(mounted){
+        final strings = AppStrings.of(context);
         setState(() {
-          _errorMessage = 'Ocurrió un error inesperado.';
+          _errorMessage = strings.unexpectedErrorOccurred;
           _isLoading = false;
         });
       }
@@ -140,6 +142,7 @@ class _MaintenanceProgrammingScreenState
   Future<void> _saveMaintenance() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final strings = AppStrings.of(context);
     setState(() {
       _isSaving = true;
     });
@@ -163,8 +166,8 @@ class _MaintenanceProgrammingScreenState
 
     if (mounted) {
       final message = result['success'] 
-          ? (result['data']?['message'] ?? (isEditing ? 'Mantenimiento actualizado' : 'Mantenimiento creado'))
-          : result['message'];
+          ? (result['data']?['message'] ?? (isEditing ? strings.maintenanceUpdated : strings.maintenanceCreated))
+          : result['message'] ?? strings.unexpectedErrorOccurred;
 
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 
@@ -175,13 +178,14 @@ class _MaintenanceProgrammingScreenState
   }
 
   Widget _buildErrorView() {
+    final strings = AppStrings.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(_errorMessage, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _initializeScreen, child: const Text('Reintentar')),
+          ElevatedButton(onPressed: _initializeScreen, child: Text(strings.retry)),
         ],
       ),
     );
@@ -247,7 +251,7 @@ class _MaintenanceProgrammingScreenState
                                     ],
                                   );
                                 },
-                                validator: (value) => value == null ? 'Por favor, selecciona una fecha' : null,
+                                validator: (value) => value == null ? strings.pleaseSelectADate : null,
                               ),
                               const SizedBox(height: 16),
                               Autocomplete<Equipment>(
@@ -263,7 +267,7 @@ class _MaintenanceProgrammingScreenState
                                     controller: fieldController,
                                     focusNode: fieldFocusNode,
                                     decoration: InputDecoration(labelText: strings.equipment, border: const OutlineInputBorder()),
-                                    validator: (value) => _selectedEquipment == null ? 'Por favor, selecciona un equipo' : null,
+                                    validator: (value) => _selectedEquipment == null ? strings.pleaseSelectAnEquipment : null,
                                   );
                                 },
                               ),
@@ -281,7 +285,7 @@ class _MaintenanceProgrammingScreenState
                                     controller: fieldController,
                                     focusNode: fieldFocusNode,
                                     decoration: InputDecoration(labelText: strings.technician, border: const OutlineInputBorder()),
-                                    validator: (value) => _selectedTechnician == null ? 'Por favor, selecciona un técnico' : null,
+                                    validator: (value) => _selectedTechnician == null ? strings.pleaseSelectATechnician : null,
                                   );
                                 },
                               ),

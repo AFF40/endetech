@@ -5,7 +5,7 @@ import '../auth/login_screen.dart';
 import '../equipments/equipments_list_screen.dart';
 import '../maintenances/maintenances_list_screen.dart';
 import '../organizations/organizations_list_screen.dart';
-import '../reports/datasheets_report_screen.dart';
+import '../reports/maintenance_report_screen.dart';
 import '../settings/audit_log_screen.dart';
 import '../settings/system_parameters_screen.dart';
 import '../settings/user_management_screen.dart';
@@ -57,7 +57,7 @@ class DashboardScreen extends StatelessWidget {
               _DashboardCard(
                 icon: Icons.bar_chart,
                 title: strings.reports,
-                screen: const DatasheetsReportScreen(),
+                screen: const MaintenanceReportScreen(),
               ),
               _DashboardCard(
                 icon: Icons.business,

@@ -1,6 +1,8 @@
 import '../../api_service.dart';
 import '../../constants/app_strings.dart';
+import '../../models/equipment.dart';
 import '../../models/maintenance.dart';
+import '../../models/organization.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'maintenance_detail_screen.dart';
@@ -28,7 +30,7 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
   bool _sortAscending = true;
 
   String? _selectedStatus;
-  final List<String> _statuses = ['programado', 'en progreso', 'completado'];
+  final List<String> _statuses = ['pendiente', 'completado'];
 
   @override
   void initState() {
@@ -49,24 +51,60 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
       _errorMessage = '';
     });
 
-    final result = await _apiService.getMantenimientos();
+    // Fetch maintenances and equipments in parallel
+    final results = await Future.wait([
+      _apiService.getMantenimientos(),
+      _apiService.getEquipos(),
+    ]);
 
-    if (mounted) {
-      if (result['success']) {
-        final List<dynamic> data = result['data']['mantenimientos'];
-        setState(() {
-          _allMaintenances = data.map((json) => Maintenance.fromJson(json)).toList();
-          _applyFilters();
-          _isLoading = false;
-        });
+    if (!mounted) return;
+
+    final maintenanceResult = results[0];
+    final equipmentResult = results[1];
+    final strings = AppStrings.of(context);
+
+    if (maintenanceResult['success'] && equipmentResult['success']) {
+      final List<dynamic> maintenanceData = maintenanceResult['data']['mantenimientos'];
+      final List<Maintenance> allMaintenances = maintenanceData.map((json) => Maintenance.fromJson(json)).toList();
+
+      final List<dynamic> equipmentData = equipmentResult['data']['equipos'];
+      final List<Equipment> allEquipments = equipmentData.map((json) => Equipment.fromJson(json)).toList();
+      final Map<int, Organization?> equipmentOrgMap = {for (var e in allEquipments) e.id: e.organization};
+      
+      final updatedMaintenances = allMaintenances.map((maintenance) {
+        if (maintenance.equipo != null) {
+          final organization = equipmentOrgMap[maintenance.equipo!.id];
+          if (organization != null) {
+            final updatedEquipment = maintenance.equipo!.copyWith(organization: organization);
+            return maintenance.copyWith(equipo: updatedEquipment);
+          }
+        }
+        return maintenance;
+      }).toList();
+
+      setState(() {
+        _allMaintenances = updatedMaintenances;
+        if (_selectedStatus != null && !_statuses.contains(_selectedStatus)) {
+          _selectedStatus = null;
+        }
+        _applyFilters();
+        _isLoading = false;
+      });
+
+    } else {
+      String errorMessage;
+      if (!maintenanceResult['success']) {
+        errorMessage = maintenanceResult['message'] ?? strings.errorLoadingData;
       } else {
-        setState(() {
-          _errorMessage = result['message'];
-          _isLoading = false;
-          _allMaintenances = [];
-          _filteredMaintenances = [];
-        });
+        errorMessage = equipmentResult['message'] ?? strings.errorLoadingData;
       }
+      
+      setState(() {
+        _errorMessage = errorMessage;
+        _isLoading = false;
+        _allMaintenances = [];
+        _filteredMaintenances = [];
+      });
     }
   }
 
@@ -74,10 +112,12 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
     final query = _searchController.text.toLowerCase();
     setState(() {
       _filteredMaintenances = _allMaintenances.where((maintenance) {
+        final orgName = maintenance.equipo?.organization?.nombre.toLowerCase();
         final matchesSearch = query.isEmpty ||
             (maintenance.equipo?.nombre.toLowerCase().contains(query) ?? false) ||
             (maintenance.equipo?.codigo.toLowerCase().contains(query) ?? false) ||
-            (maintenance.tecnico?.fullName.toLowerCase().contains(query) ?? false);
+            (maintenance.tecnico?.fullName.toLowerCase().contains(query) ?? false) ||
+            (orgName?.contains(query) ?? false);
         final matchesStatus = _selectedStatus == null || maintenance.estado == _selectedStatus;
         return matchesSearch && matchesStatus;
       }).toList();
@@ -87,7 +127,7 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
   }
 
   void _onSort(int columnIndex, bool ascending) {
-    if (columnIndex == 5) return; // Action column is not sortable
+    if (columnIndex == 6) return; // Action column is not sortable
     setState(() {
       _sortColumnIndex = columnIndex;
       _sortAscending = ascending;
@@ -96,26 +136,32 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
   }
 
   void _sortFilteredList() {
+    final strings = AppStrings.of(context);
     _filteredMaintenances.sort((a, b) {
       int result = 0;
       switch (_sortColumnIndex) {
         case 0: result = a.equipo?.codigo.compareTo(b.equipo?.codigo ?? '') ?? 0; break;
         case 1: result = a.equipo?.nombre.compareTo(b.equipo?.nombre ?? '') ?? 0; break;
-        case 2: result = a.tecnico?.fullName.compareTo(b.tecnico?.fullName ?? '') ?? 0; break;
-        case 3: result = a.fechaProgramada.compareTo(b.fechaProgramada); break;
-        case 4: result = a.estado.compareTo(b.estado); break;
+        case 2: 
+          result = (a.equipo?.organization?.nombre ?? '').compareTo(b.equipo?.organization?.nombre ?? '');
+          break;
+        case 3: result = a.tecnico?.fullName.compareTo(b.tecnico?.fullName ?? strings.unassigned) ?? 0; break;
+        case 4: result = a.fechaProgramada.compareTo(b.fechaProgramada); break;
+        case 5: result = a.estado.compareTo(b.estado); break;
       }
       return _sortAscending ? result : -result;
     });
   }
 
   Future<void> _deleteMaintenance(int id) async {
+    if (!mounted) return;
     final result = await _apiService.deleteMantenimiento(id);
+    final strings = AppStrings.of(context);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result['success'] 
-            ? (result['data']?['message'] ?? 'Mantenimiento eliminado') 
-            : result['message'])),
+            ? (result['data']?['message'] ?? strings.maintenanceDeleted) 
+            : result['message'] ?? strings.unexpectedErrorOccurred)),
       );
       if (result['success']) {
         _fetchMaintenances();
@@ -130,7 +176,7 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: Text(strings.delete),
-          content: Text('¿Estás seguro de que quieres eliminar el mantenimiento del equipo ${maintenance.equipo?.nombre ?? ''}?'), // TODO: Internationalize
+          content: Text(strings.confirmDelete('el mantenimiento del equipo ${maintenance.equipo?.nombre ?? strings.unassigned}')),
           actions: <Widget>[
             TextButton(
               child: Text(strings.cancel),
@@ -180,10 +226,11 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
     if (confirmed ?? false) {
       final result = await _apiService.updateMantenimiento(maintenance.id, {'estado': newStatus});
       if(mounted) {
+        final strings = AppStrings.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result['success'] 
-              ? (result['data']?['message'] ?? 'Estado actualizado') 
-              : result['message'])),
+              ? (result['data']?['message'] ?? strings.statusUpdated) 
+              : result['message'] ?? strings.unexpectedErrorOccurred)),
         );
         if(result['success']) {
           _fetchMaintenances();
@@ -193,13 +240,14 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
   }
   
   Widget _buildErrorView() {
+    final strings = AppStrings.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(_errorMessage, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _fetchMaintenances, child: const Text('Reintentar')), // TODO: Internationalize
+          ElevatedButton(onPressed: _fetchMaintenances, child: Text(strings.retry)),
         ],
       ),
     );
@@ -233,54 +281,60 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
                           ..._statuses.map((s) => DropdownMenuItem(value: s, child: Text(s.characters.first.toUpperCase() + s.substring(1))))
                         ],
                       ),
-                    ],
-                  ),
+                    ],                  ),
                 ),
                 Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
-                      child: DataTable(
-                        sortColumnIndex: _sortColumnIndex,
-                        sortAscending: _sortAscending,
-                        onSelectAll: (selected) => setState(() => selected! ? _selectedMaintenances.addAll(_filteredMaintenances) : _selectedMaintenances.clear()),
-                        columns: [
-                          DataColumn(label: Text(strings.assetCode), onSort: _onSort),
-                          DataColumn(label: Text(strings.equipment), onSort: _onSort),
-                          DataColumn(label: Text(strings.technician), onSort: _onSort),
-                          DataColumn(label: Text(strings.date), onSort: _onSort),
-                          DataColumn(label: Text(strings.status), onSort: _onSort),
-                          DataColumn(label: Text(strings.actions)),
-                        ],
-                        rows: _filteredMaintenances.map((maintenance) {
-                          return DataRow(
-                            selected: _selectedMaintenances.contains(maintenance),
-                            onSelectChanged: (selected) => setState(() => selected! ? _selectedMaintenances.add(maintenance) : _selectedMaintenances.remove(maintenance)),
-                            cells: [
-                              DataCell(Text(maintenance.equipo?.codigo ?? 'N/A')),
-                              DataCell(Text(maintenance.equipo?.nombre ?? 'N/A')),
-                              DataCell(Text(maintenance.tecnico?.fullName ?? 'N/A')),
-                              DataCell(Text(DateFormat('dd/MM/yyyy').format(maintenance.fechaProgramada))),
-                              DataCell(Text(maintenance.estado)),
-                              DataCell(Row(children: [
-                                IconButton(icon: const Icon(Icons.visibility), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => MaintenanceDetailScreen(maintenanceId: maintenance.id)))),
-                                IconButton(icon: const Icon(Icons.edit), onPressed: () => _navigateToEditScreen(maintenance)),
-                                IconButton(icon: const Icon(Icons.delete), onPressed: () => _showDeleteConfirmationDialog(maintenance)),
-                                IconButton(icon: const Icon(Icons.print), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => MaintenancePdfPreviewScreen(maintenances: [maintenance])))),
-                                if (maintenance.estado != 'completado')
-                                  IconButton(
-                                    icon: const Icon(Icons.check_circle, color: Colors.green),
-                                    tooltip: strings.markAsCompleted,
-                                    onPressed: () => _confirmChangeStatus(maintenance, 'completado'),
-                                  ),
-                              ])),
-                            ],
-                          );
-                        }).toList(),
+                  child: _filteredMaintenances.isEmpty
+                      ? Center(child: Text(strings.noResultsFound))
+                      : SingleChildScrollView(
+                        scrollDirection: Axis.vertical,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
+                            child: DataTable(
+                              sortColumnIndex: _sortColumnIndex,
+                              sortAscending: _sortAscending,
+                              onSelectAll: (selected) => setState(() => selected! ? _selectedMaintenances.addAll(_filteredMaintenances) : _selectedMaintenances.clear()),
+                              columns: [
+                                DataColumn(label: Text(strings.assetCode), onSort: _onSort),
+                                DataColumn(label: Text(strings.equipment), onSort: _onSort),
+                                DataColumn(label: Text(strings.organization), onSort: _onSort),
+                                DataColumn(label: Text(strings.technician), onSort: _onSort),
+                                DataColumn(label: Text(strings.date), onSort: _onSort),
+                                DataColumn(label: Text(strings.status), onSort: _onSort),
+                                DataColumn(label: Text(strings.actions)),
+                              ],
+                              rows: _filteredMaintenances.map((maintenance) {
+                                return DataRow(
+                                  selected: _selectedMaintenances.contains(maintenance),
+                                  onSelectChanged: (selected) => setState(() => selected! ? _selectedMaintenances.add(maintenance) : _selectedMaintenances.remove(maintenance)),
+                                  cells: [
+                                    DataCell(Text(maintenance.equipo?.codigo ?? strings.notAvailable)),
+                                    DataCell(Text(maintenance.equipo?.nombre ?? strings.notAvailable)),
+                                    DataCell(Text(maintenance.equipo?.organization?.nombre ?? strings.notAvailable)),
+                                    DataCell(Text(maintenance.tecnico?.fullName ?? strings.unassigned)),
+                                    DataCell(Text(DateFormat('dd/MM/yyyy').format(maintenance.fechaProgramada))),
+                                    DataCell(Text(maintenance.estado)),
+                                    DataCell(Row(children: [
+                                      IconButton(icon: const Icon(Icons.visibility), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => MaintenanceDetailScreen(maintenanceId: maintenance.id)))),
+                                      IconButton(icon: const Icon(Icons.edit), onPressed: () => _navigateToEditScreen(maintenance)),
+                                      IconButton(icon: const Icon(Icons.delete), onPressed: () => _showDeleteConfirmationDialog(maintenance)),
+                                      IconButton(icon: const Icon(Icons.print), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => MaintenancePdfPreviewScreen(maintenances: [maintenance])))),
+                                      if (maintenance.estado != 'completado')
+                                        IconButton(
+                                          icon: const Icon(Icons.check_circle, color: Colors.green),
+                                          tooltip: strings.markAsCompleted,
+                                          onPressed: () => _confirmChangeStatus(maintenance, 'completado'),
+                                        ),
+                                    ])),
+                                  ],
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -291,7 +345,7 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => MaintenancePdfPreviewScreen(maintenances: _selectedMaintenances.toList()))),
                   icon: const Icon(Icons.picture_as_pdf),
-                  label: Text('Generar PDF para ${_selectedMaintenances.length} mantenimientos'), // TODO: Internationalize
+                  label: Text(strings.generatePdfForN(_selectedMaintenances.length, strings.maintenances.toLowerCase())),
                   style: ElevatedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: Theme.of(context).primaryColor),
                 ),
               ),

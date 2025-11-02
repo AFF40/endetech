@@ -93,7 +93,7 @@ class _OrganizationEditScreenState extends State<OrganizationEditScreen> {
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'El nombre es requerido'; // TODO: Internationalize
+                    return strings.fieldIsRequired; 
                   }
                   return null;
                 },
@@ -108,7 +108,7 @@ class _OrganizationEditScreenState extends State<OrganizationEditScreen> {
                 maxLines: 3,
                  validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'La descripción es requerida'; // TODO: Internationalize
+                    return strings.pleaseEnterDescription;
                   }
                   return null;
                 },

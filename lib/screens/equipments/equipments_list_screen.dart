@@ -31,7 +31,7 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
   String? _selectedType;
   List<String> _uniqueBrands = [];
   List<String> _uniqueTypes = [];
-  final List<String> _statuses = ['activo', 'inactivo', 'en reparación'];
+  final List<String> _statuses = ['activo', 'en reparación'];
 
   @override
   void initState() {
@@ -61,12 +61,21 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
           _allEquipments = data.map((json) => Equipment.fromJson(json)).toList();
           _uniqueBrands = _allEquipments.map((e) => e.marca).where((e) => e.isNotEmpty).toSet().toList();
           _uniqueTypes = _allEquipments.map((e) => e.tipo).where((e) => e.isNotEmpty).toSet().toList();
+          
+          if (!_uniqueBrands.contains(_selectedBrand)) {
+            _selectedBrand = null;
+          }
+          if (!_uniqueTypes.contains(_selectedType)) {
+            _selectedType = null;
+          }
+
           _applyFilters();
           _isLoading = false;
         });
       } else {
+        final strings = AppStrings.of(context);
         setState(() {
-          _errorMessage = result['message'];
+          _errorMessage = result['message'] ?? strings.errorLoadingData;
           _isLoading = false;
           _allEquipments = [];
           _filteredEquipments = [];
@@ -109,7 +118,7 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
         case 1: result = a.nombre.compareTo(b.nombre); break;
         case 2: result = a.tipo.compareTo(b.tipo); break;
         case 3: result = a.marca.compareTo(b.marca); break;
-        case 4: result = (a.organizationId?.toString() ?? '').compareTo(b.organizationId?.toString() ?? ''); break;
+        case 4: result = (a.organization?.nombre ?? '').compareTo(b.organization?.nombre ?? ''); break;
         case 5: result = a.estado.compareTo(b.estado); break;
         case 6: result = (a.ultimoMantenimiento ?? DateTime(0)).compareTo(b.ultimoMantenimiento ?? DateTime(0)); break;
         case 7: result = (a.proximoMantenimiento ?? DateTime(0)).compareTo(b.proximoMantenimiento ?? DateTime(0)); break;
@@ -119,12 +128,14 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
   }
 
   Future<void> _deleteEquipment(int id) async {
+    if (!mounted) return;
     final result = await _apiService.deleteEquipo(id);
+    final strings = AppStrings.of(context);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result['success'] 
-            ? (result['data']?['message'] ?? 'Equipo eliminado') 
-            : result['message'])),
+            ? (result['data']?['message'] ?? strings.equipmentDeleted) 
+            : result['message'] ?? strings.unexpectedErrorOccurred)),
       );
       if (result['success']) {
         _fetchEquipments();
@@ -138,7 +149,7 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(strings.delete),
-          content: Text('¿Estás seguro de que quieres eliminar ${equipment.nombre}?'), // TODO: Internationalize
+          content: Text(strings.confirmDelete(equipment.nombre)),
           actions: <Widget>[
             TextButton(child: Text(strings.cancel), onPressed: () => Navigator.of(context).pop()),
             TextButton(
@@ -165,13 +176,14 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
   }
 
   Widget _buildErrorView() {
+    final strings = AppStrings.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(_errorMessage, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _fetchEquipments, child: const Text('Reintentar')), // TODO: Internationalize
+          ElevatedButton(onPressed: _fetchEquipments, child: Text(strings.retry)),
         ],
       ),
     );
@@ -207,49 +219,54 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
                       ),
                     ),
                     Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
-                          child: DataTable(
-                            sortColumnIndex: _sortColumnIndex,
-                            sortAscending: _sortAscending,
-                            onSelectAll: (selected) => setState(() => selected! ? _selectedEquipments.addAll(_filteredEquipments) : _selectedEquipments.clear()),
-                            columns: [
-                              DataColumn(label: Text(strings.assetCode), onSort: _onSort),
-                              DataColumn(label: Text(strings.equipmentName), onSort: _onSort),
-                              DataColumn(label: Text(strings.type), onSort: _onSort),
-                              DataColumn(label: Text(strings.brand), onSort: _onSort),
-                              DataColumn(label: Text(strings.organizationId), onSort: _onSort),
-                              DataColumn(label: Text(strings.status), onSort: _onSort),
-                              DataColumn(label: Text(strings.lastMaintenanceShort), onSort: _onSort),
-                              DataColumn(label: Text(strings.nextMaintenanceShort), onSort: _onSort),
-                              DataColumn(label: Text(strings.actions)),
-                            ],
-                            rows: _filteredEquipments.map((equipment) {
-                              return DataRow(
-                                selected: _selectedEquipments.contains(equipment),
-                                onSelectChanged: (selected) => setState(() => selected! ? _selectedEquipments.add(equipment) : _selectedEquipments.remove(equipment)),
-                                cells: [
-                                  DataCell(Text(equipment.codigo)),
-                                  DataCell(Text(equipment.nombre)),
-                                  DataCell(Text(equipment.tipo)),
-                                  DataCell(Text(equipment.marca)),
-                                  DataCell(Text(equipment.organizationId?.toString() ?? '')),
-                                  DataCell(Text(equipment.estado)),
-                                  DataCell(Text(equipment.ultimoMantenimiento != null ? DateFormat('dd/MM/yyyy').format(equipment.ultimoMantenimiento!) : '')),
-                                  DataCell(Text(equipment.proximoMantenimiento != null ? DateFormat('dd/MM/yyyy').format(equipment.proximoMantenimiento!) : '')),
-                                  DataCell(Row(children: [
-                                    IconButton(icon: const Icon(Icons.edit), onPressed: () => _navigateToEditScreen(equipment)),
-                                    IconButton(icon: const Icon(Icons.print), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PdfPreviewScreen(equipments: [equipment])))),
-                                    IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _showDeleteConfirmation(context, equipment, strings)),
-                                  ])),
-                                ],
-                              );
-                            }).toList(),
+                      child: _filteredEquipments.isEmpty
+                          ? Center(child: Text(strings.noResultsFound))
+                          : SingleChildScrollView(
+                            scrollDirection: Axis.vertical,
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
+                                child: DataTable(
+                                  sortColumnIndex: _sortColumnIndex,
+                                  sortAscending: _sortAscending,
+                                  onSelectAll: (selected) => setState(() => selected! ? _selectedEquipments.addAll(_filteredEquipments) : _selectedEquipments.clear()),
+                                  columns: [
+                                    DataColumn(label: Text(strings.assetCode), onSort: _onSort),
+                                    DataColumn(label: Text(strings.equipmentName), onSort: _onSort),
+                                    DataColumn(label: Text(strings.type), onSort: _onSort),
+                                    DataColumn(label: Text(strings.brand), onSort: _onSort),
+                                    DataColumn(label: Text(strings.organizationManagement), onSort: _onSort),
+                                    DataColumn(label: Text(strings.status), onSort: _onSort),
+                                    DataColumn(label: Text(strings.lastMaintenanceShort), onSort: _onSort),
+                                    DataColumn(label: Text(strings.nextMaintenanceShort), onSort: _onSort),
+                                    DataColumn(label: Text(strings.actions)),
+                                  ],
+                                  rows: _filteredEquipments.map((equipment) {
+                                    return DataRow(
+                                      selected: _selectedEquipments.contains(equipment),
+                                      onSelectChanged: (selected) => setState(() => selected! ? _selectedEquipments.add(equipment) : _selectedEquipments.remove(equipment)),
+                                      cells: [
+                                        DataCell(Text(equipment.codigo)),
+                                        DataCell(Text(equipment.nombre)),
+                                        DataCell(Text(equipment.tipo)),
+                                        DataCell(Text(equipment.marca)),
+                                        DataCell(Text(equipment.organization?.nombre ?? strings.notAvailable)),
+                                        DataCell(Text(equipment.estado)),
+                                        DataCell(Text(equipment.ultimoMantenimiento != null ? DateFormat('dd/MM/yyyy').format(equipment.ultimoMantenimiento!) : '')),
+                                        DataCell(Text(equipment.proximoMantenimiento != null ? DateFormat('dd/MM/yyyy').format(equipment.proximoMantenimiento!) : '')),
+                                        DataCell(Row(children: [
+                                          IconButton(icon: const Icon(Icons.edit), onPressed: () => _navigateToEditScreen(equipment)),
+                                          IconButton(icon: const Icon(Icons.print), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PdfPreviewScreen(equipments: [equipment])))),
+                                          IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _showDeleteConfirmation(context, equipment, strings)),
+                                        ])),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
                     ),
                   ],
                 ),
@@ -260,7 +277,7 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PdfPreviewScreen(equipments: _selectedEquipments.toList()))),
                   icon: const Icon(Icons.picture_as_pdf),
-                  label: Text('Generar PDF para ${_selectedEquipments.length} equipos'), // TODO: Internationalize
+                  label: Text(strings.generatePdfForN(_selectedEquipments.length, strings.equipments.toLowerCase())),
                   style: ElevatedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: Theme.of(context).primaryColor),
                 ),
               ),

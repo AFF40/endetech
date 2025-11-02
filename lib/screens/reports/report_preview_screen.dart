@@ -63,7 +63,7 @@ class ReportPreviewScreen extends StatelessWidget {
         equipment.nombre,
         equipment.tipo,
         equipment.marca,
-        equipment.organizationId?.toString() ?? '',
+        equipment.organization,
         equipment.characteristics,
         equipment.estado,
         equipment.ultimoMantenimiento != null ? DateFormat('dd/MM/yyyy').format(equipment.ultimoMantenimiento!) : '',

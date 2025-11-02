@@ -232,41 +232,43 @@ class _TasksListScreenState extends State<TasksListScreen> {
                   ),
                 ),
                 Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.vertical,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
-                        child: DataTable(
-                          sortColumnIndex: _sortColumnIndex,
-                          sortAscending: _sortAscending,
-                          columns: [
-                            DataColumn(label: Text(strings.name), onSort: _onSort),
-                            DataColumn(label: Text(strings.description), onSort: _onSort),
-                            DataColumn(label: Text(strings.actions)),
-                          ],
-                          rows: _filteredTasks.map((task) {
-                            return DataRow(
-                              cells: [
-                                DataCell(Text(task.nombre)),
-                                DataCell(Text(task.descripcion ?? '')),
-                                DataCell(
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _showTaskDialog(task: task), tooltip: 'Editar'),
-                                      IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _showDeleteConfirmation(task), tooltip: 'Eliminar'),
+                  child: _filteredTasks.isEmpty
+                      ? const Center(child: Text('No se encontraron resultados')) // TODO: Internationalize
+                      : SingleChildScrollView(
+                          scrollDirection: Axis.vertical,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
+                              child: DataTable(
+                                sortColumnIndex: _sortColumnIndex,
+                                sortAscending: _sortAscending,
+                                columns: [
+                                  DataColumn(label: Text(strings.name), onSort: _onSort),
+                                  DataColumn(label: Text(strings.description), onSort: _onSort),
+                                  DataColumn(label: Text(strings.actions)),
+                                ],
+                                rows: _filteredTasks.map((task) {
+                                  return DataRow(
+                                    cells: [
+                                      DataCell(Text(task.nombre)),
+                                      DataCell(Text(task.descripcion ?? '')),
+                                      DataCell(
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _showTaskDialog(task: task), tooltip: 'Editar'),
+                                            IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _showDeleteConfirmation(task), tooltip: 'Eliminar'),
+                                          ],
+                                        ),
+                                      ),
                                     ],
-                                  ),
-                                ),
-                              ],
-                            );
-                          }).toList(),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
                 ),
               ],
             ),

@@ -18,6 +18,9 @@ class TechnicianPdfPreviewScreen extends StatelessWidget {
       ),
       body: PdfPreview(
         build: (format) => _generatePdf(format, technicians),
+        canChangePageFormat: false,
+        canChangeOrientation: false,
+        canDebug: false,
       ),
     );
   }

@@ -120,7 +120,7 @@ class _OrganizationsListScreenState extends State<OrganizationsListScreen> {
         children: [
           Text(_errorMessage, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _fetchOrganizations, child: const Text('Reintentar')), // TODO: Internationalize
+          ElevatedButton(onPressed: _fetchOrganizations, child: const Text('Reintentar')),
         ],
       ),
     );
@@ -149,35 +149,40 @@ class _OrganizationsListScreenState extends State<OrganizationsListScreen> {
                   ),
                 ),
                 Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
-                      child: DataTable(
-                        columns: [
-                          DataColumn(label: Text(strings.name)),
-                          DataColumn(label: Text(strings.description)),
-                          DataColumn(label: Text(strings.actions)),
-                        ],
-                        rows: _filteredOrganizations.map((org) {
-                          return DataRow(
-                            cells: [
-                              DataCell(Text(org.nombre)),
-                              DataCell(Text(org.description ?? '')),
-                              DataCell(
-                                Row(
-                                  children: [
-                                    IconButton(icon: const Icon(Icons.edit), onPressed: () => _navigateToEditScreen(org)),
-                                    IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _showDeleteConfirmation(context, org, strings)),
+                  child: _filteredOrganizations.isEmpty
+                      ? const Center(child: Text('No se encontraron resultados')) // TODO: Internationalize
+                      : SingleChildScrollView(
+                        scrollDirection: Axis.vertical,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
+                            child: DataTable(
+                              columns: [
+                                DataColumn(label: Text(strings.name)),
+                                DataColumn(label: Text(strings.description)),
+                                DataColumn(label: Text(strings.actions)),
+                              ],
+                              rows: _filteredOrganizations.map((org) {
+                                return DataRow(
+                                  cells: [
+                                    DataCell(Text(org.nombre)),
+                                    DataCell(Text(org.description ?? '')),
+                                    DataCell(
+                                      Row(
+                                        children: [
+                                          IconButton(icon: const Icon(Icons.edit), onPressed: () => _navigateToEditScreen(org)),
+                                          IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _showDeleteConfirmation(context, org, strings)),
+                                        ],
+                                      ),
+                                    ),
                                   ],
-                                ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
                 ),
               ],
             ),

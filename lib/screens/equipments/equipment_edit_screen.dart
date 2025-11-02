@@ -1,6 +1,7 @@
 import '../../api_service.dart';
 import '../../constants/app_strings.dart';
 import '../../models/equipment.dart';
+import '../../models/organization.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -17,29 +18,61 @@ class _EquipmentEditScreenState extends State<EquipmentEditScreen> {
   final _apiService = ApiService();
   final _formKey = GlobalKey<FormState>();
   
+  // Controllers
   late TextEditingController _codigoController;
   late TextEditingController _nombreController;
   late TextEditingController _tipoController;
   late TextEditingController _marcaController;
-  late TextEditingController _organizationIdController;
-  late TextEditingController _estadoController;
   late TextEditingController _ultimoMantenimientoController;
   late TextEditingController _proximoMantenimientoController;
   late TextEditingController _sistemaOperativoController;
   late TextEditingController _procesadorController;
   late TextEditingController _memoriaRamController;
   late TextEditingController _almacenamientoController;
-  bool _isLoading = false;
+  
+  // State variables
+  String? _selectedEstado;
+  int? _selectedOrganizationId;
+  List<Organization> _organizations = [];
+  bool _isLoadingData = true;
+  String _errorMessage = '';
+  bool _isSaving = false;
+
+  final List<String> _estados = ['activo', 'en reparación'];
 
   @override
   void initState() {
     super.initState();
+    _fetchInitialData();
+  }
+
+  Future<void> _fetchInitialData() async {
+    final result = await _apiService.getOrganizations();
+    if (mounted) {
+      if (result['success']) {
+        final List<dynamic> data = result['data']['organizations'];
+        setState(() {
+          _organizations = data.map((json) => Organization.fromJson(json)).toList();
+          _initializeControllers();
+          _isLoadingData = false;
+        });
+      } else {
+        final strings = AppStrings.of(context);
+        setState(() {
+          _errorMessage = result['message'] ?? strings.errorLoadingData;
+          _isLoadingData = false;
+        });
+      }
+    }
+  }
+
+  void _initializeControllers() {
     _codigoController = TextEditingController(text: widget.equipment?.codigo ?? '');
     _nombreController = TextEditingController(text: widget.equipment?.nombre ?? '');
     _tipoController = TextEditingController(text: widget.equipment?.tipo ?? '');
     _marcaController = TextEditingController(text: widget.equipment?.marca ?? '');
-    _organizationIdController = TextEditingController(text: widget.equipment?.organizationId?.toString() ?? '');
-    _estadoController = TextEditingController(text: widget.equipment?.estado ?? '');
+    _selectedEstado = widget.equipment?.estado ?? 'activo';
+    _selectedOrganizationId = widget.equipment?.organization?.id;
     _ultimoMantenimientoController = TextEditingController(text: widget.equipment?.ultimoMantenimiento != null ? DateFormat('yyyy-MM-dd').format(widget.equipment!.ultimoMantenimiento!) : '');
     _proximoMantenimientoController = TextEditingController(text: widget.equipment?.proximoMantenimiento != null ? DateFormat('yyyy-MM-dd').format(widget.equipment!.proximoMantenimiento!) : '');
     _sistemaOperativoController = TextEditingController(text: widget.equipment?.sistemaOperativo ?? '');
@@ -54,8 +87,6 @@ class _EquipmentEditScreenState extends State<EquipmentEditScreen> {
     _nombreController.dispose();
     _tipoController.dispose();
     _marcaController.dispose();
-    _organizationIdController.dispose();
-    _estadoController.dispose();
     _ultimoMantenimientoController.dispose();
     _proximoMantenimientoController.dispose();
     _sistemaOperativoController.dispose();
@@ -67,9 +98,10 @@ class _EquipmentEditScreenState extends State<EquipmentEditScreen> {
 
   Future<void> _saveEquipment() async {
     if (!_formKey.currentState!.validate()) return;
+    final strings = AppStrings.of(context);
 
     setState(() {
-      _isLoading = true;
+      _isSaving = true;
     });
 
     final data = {
@@ -77,8 +109,8 @@ class _EquipmentEditScreenState extends State<EquipmentEditScreen> {
       'nombre': _nombreController.text,
       'tipo': _tipoController.text,
       'marca': _marcaController.text,
-      'organization_id': int.tryParse(_organizationIdController.text),
-      'estado': _estadoController.text,
+      'organization_id': _selectedOrganizationId,
+      'estado': _selectedEstado,
       'ultimo_mantenimiento': _ultimoMantenimientoController.text,
       'proximo_mantenimiento': _proximoMantenimientoController.text,
       'sistema_operativo': _sistemaOperativoController.text,
@@ -95,13 +127,13 @@ class _EquipmentEditScreenState extends State<EquipmentEditScreen> {
         : await _apiService.createEquipo(data);
 
     setState(() {
-      _isLoading = false;
+      _isSaving = false;
     });
 
     if (mounted) {
       final message = result['success'] 
-          ? (result['data']?['message'] ?? (isEditing ? 'Equipo actualizado' : 'Equipo creado'))
-          : result['message'];
+          ? (result['data']?['message'] ?? (isEditing ? strings.equipmentUpdated : strings.equipmentCreated))
+          : result['message'] ?? strings.unexpectedErrorOccurred;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
@@ -118,72 +150,101 @@ class _EquipmentEditScreenState extends State<EquipmentEditScreen> {
     final strings = AppStrings.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(widget.equipment == null ? strings.addEquipment : strings.registerEditEquipment)),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextFormField(
-                  controller: _codigoController,
-                  decoration: InputDecoration(labelText: strings.assetCode, border: const OutlineInputBorder()),
-                  validator: (value) => (value == null || value.isEmpty) ? 'Este campo es requerido' : null, // TODO: Internationalize
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _nombreController, 
-                  decoration: InputDecoration(labelText: strings.equipmentName, border: const OutlineInputBorder()),
-                  validator: (value) => (value == null || value.isEmpty) ? 'Este campo es requerido' : null, // TODO: Internationalize
-                ),
-                const SizedBox(height: 16),
-                TextFormField(controller: _tipoController, decoration: InputDecoration(labelText: strings.type, border: const OutlineInputBorder())),
-                const SizedBox(height: 16),
-                TextFormField(controller: _marcaController, decoration: InputDecoration(labelText: strings.brand, border: const OutlineInputBorder())),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _organizationIdController,
-                  decoration: InputDecoration(labelText: strings.organizationId, border: const OutlineInputBorder()),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value != null && value.isNotEmpty && int.tryParse(value) == null) {
-                      return 'Debe ser un número válido'; // TODO: Internationalize
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _estadoController,
-                  decoration: InputDecoration(labelText: strings.status, border: const OutlineInputBorder()),
-                  validator: (value) => (value == null || value.isEmpty) ? 'Este campo es requerido' : null, // TODO: Internationalize
-                ),
-                const SizedBox(height: 16),
-                TextFormField(controller: _ultimoMantenimientoController, decoration: InputDecoration(labelText: strings.lastMaintenanceShort, hintText: 'YYYY-MM-DD', border: const OutlineInputBorder())),
-                const SizedBox(height: 16),
-                TextFormField(controller: _proximoMantenimientoController, decoration: InputDecoration(labelText: strings.nextMaintenanceShort, hintText: 'YYYY-MM-DD', border: const OutlineInputBorder())),
-                const SizedBox(height: 16),
-                TextFormField(controller: _sistemaOperativoController, decoration: InputDecoration(labelText: strings.so, border: const OutlineInputBorder())),
-                const SizedBox(height: 16),
-                TextFormField(controller: _procesadorController, decoration: InputDecoration(labelText: strings.processor, border: const OutlineInputBorder())),
-                const SizedBox(height: 16),
-                TextFormField(controller: _memoriaRamController, decoration: InputDecoration(labelText: strings.ram, border: const OutlineInputBorder())),
-                const SizedBox(height: 16),
-                TextFormField(controller: _almacenamientoController, decoration: InputDecoration(labelText: strings.storage, border: const OutlineInputBorder())),
-                const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _saveEquipment,
-                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                  child: _isLoading
-                      ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white))
-                      : Text(strings.save),
-                ),
-              ],
+      body: _isLoadingData
+        ? const Center(child: CircularProgressIndicator())
+        : _errorMessage.isNotEmpty
+          ? Center(child: Text(_errorMessage))
+          : SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 600),
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              TextFormField(
+                                controller: _codigoController,
+                                decoration: InputDecoration(labelText: strings.assetCode, border: const OutlineInputBorder()),
+                                validator: (value) => (value == null || value.isEmpty) ? strings.fieldIsRequired : null,
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _nombreController, 
+                                decoration: InputDecoration(labelText: strings.equipmentName, border: const OutlineInputBorder()),
+                                validator: (value) => (value == null || value.isEmpty) ? strings.fieldIsRequired : null,
+                              ),
+                              const SizedBox(height: 16),
+                              DropdownButtonFormField<int>(
+                                value: _selectedOrganizationId,
+                                decoration: InputDecoration(labelText: strings.organizationManagement, border: const OutlineInputBorder()),
+                                items: _organizations.map((Organization org) {
+                                  return DropdownMenuItem<int>(
+                                    value: org.id,
+                                    child: Text(org.nombre),
+                                  );
+                                }).toList(),
+                                onChanged: (newValue) {
+                                  setState(() {
+                                    _selectedOrganizationId = newValue;
+                                  });
+                                },
+                                validator: (value) => (value == null) ? strings.pleaseSelectAnOrganization : null,
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(controller: _tipoController, decoration: InputDecoration(labelText: strings.type, border: const OutlineInputBorder())),
+                              const SizedBox(height: 16),
+                              TextFormField(controller: _marcaController, decoration: InputDecoration(labelText: strings.brand, border: const OutlineInputBorder())),
+                              const SizedBox(height: 16),
+                              DropdownButtonFormField<String>(
+                                value: _selectedEstado,
+                                decoration: InputDecoration(labelText: strings.status, border: const OutlineInputBorder()),
+                                items: _estados.map((String estado) {
+                                  return DropdownMenuItem<String>(
+                                    value: estado,
+                                    child: Text(estado.characters.first.toUpperCase() + estado.substring(1)),
+                                  );
+                                }).toList(),
+                                onChanged: (newValue) {
+                                  setState(() {
+                                    _selectedEstado = newValue;
+                                  });
+                                },
+                                validator: (value) => (value == null || value.isEmpty) ? strings.fieldIsRequired : null,
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(controller: _ultimoMantenimientoController, decoration: InputDecoration(labelText: strings.lastMaintenanceShort, hintText: 'YYYY-MM-DD', border: const OutlineInputBorder())),
+                              const SizedBox(height: 16),
+                              TextFormField(controller: _proximoMantenimientoController, decoration: InputDecoration(labelText: strings.nextMaintenanceShort, hintText: 'YYYY-MM-DD', border: const OutlineInputBorder())),
+                              const SizedBox(height: 16),
+                              TextFormField(controller: _sistemaOperativoController, decoration: InputDecoration(labelText: strings.so, border: const OutlineInputBorder())),
+                              const SizedBox(height: 16),
+                              TextFormField(controller: _procesadorController, decoration: InputDecoration(labelText: strings.processor, border: const OutlineInputBorder())),
+                              const SizedBox(height: 16),
+                              TextFormField(controller: _memoriaRamController, decoration: InputDecoration(labelText: strings.ram, border: const OutlineInputBorder())),
+                              const SizedBox(height: 16),
+                              TextFormField(controller: _almacenamientoController, decoration: InputDecoration(labelText: strings.storage, border: const OutlineInputBorder())),
+                              const SizedBox(height: 32),
+                              ElevatedButton(
+                                onPressed: _isSaving ? null : _saveEquipment,
+                                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                                child: _isSaving
+                                    ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white))
+                                    : Text(strings.save),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        ),
-      ),
     );
   }
 }

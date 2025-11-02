@@ -153,39 +153,41 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                   ),
                 ),
                 Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
-                      child: DataTable(
-                        onSelectAll: (selected) => setState(() => selected! ? _selectedTechnicians.addAll(_filteredTechnicians) : _selectedTechnicians.clear()),
-                        columns: [
-                          DataColumn(label: Text(strings.name)),
-                          DataColumn(label: Text(strings.specialty)),
-                          DataColumn(label: Text(strings.actions)),
-                        ],
-                        rows: _filteredTechnicians.map((tech) {
-                          final isSelected = _selectedTechnicians.contains(tech);
-                          return DataRow(
-                            selected: isSelected,
-                            onSelectChanged: (selected) => setState(() => isSelected ? _selectedTechnicians.remove(tech) : _selectedTechnicians.add(tech)),
-                            cells: [
-                              DataCell(Text(tech.fullName)),
-                              DataCell(Text(tech.especialidad)),
-                              DataCell(
-                                Row(
-                                  children: [
-                                    IconButton(icon: const Icon(Icons.edit), onPressed: () => _navigateToEditScreen(tech)),
-                                    IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _showDeleteConfirmation(context, tech, strings)),
+                  child: _filteredTechnicians.isEmpty
+                      ? const Center(child: Text('No se encontraron resultados')) // TODO: Internationalize
+                      : SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
+                            child: DataTable(
+                              onSelectAll: (selected) => setState(() => selected! ? _selectedTechnicians.addAll(_filteredTechnicians) : _selectedTechnicians.clear()),
+                              columns: [
+                                DataColumn(label: Text(strings.name)),
+                                DataColumn(label: Text(strings.specialty)),
+                                DataColumn(label: Text(strings.actions)),
+                              ],
+                              rows: _filteredTechnicians.map((tech) {
+                                final isSelected = _selectedTechnicians.contains(tech);
+                                return DataRow(
+                                  selected: isSelected,
+                                  onSelectChanged: (selected) => setState(() => isSelected ? _selectedTechnicians.remove(tech) : _selectedTechnicians.add(tech)),
+                                  cells: [
+                                    DataCell(Text(tech.fullName)),
+                                    DataCell(Text(tech.especialidad)),
+                                    DataCell(
+                                      Row(
+                                        children: [
+                                          IconButton(icon: const Icon(Icons.edit), onPressed: () => _navigateToEditScreen(tech)),
+                                          IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _showDeleteConfirmation(context, tech, strings)),
+                                        ],
+                                      ),
+                                    ),
                                   ],
-                                ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
                 ),
               ],
             ),

@@ -1,3 +1,4 @@
+import 'package:endetech/api_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'constants/app_strings.dart';
@@ -10,6 +11,8 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
   final keepLoggedIn = prefs.getBool('keepLoggedIn') ?? false;
+  final languageCode = prefs.getString('language') ?? 'en';
+  ApiService.setLanguage(languageCode);
   runApp(MyApp(isLoggedIn: isLoggedIn && keepLoggedIn));
 }
 
@@ -53,6 +56,7 @@ class _MyAppState extends State<MyApp> {
       } else {
         _locale = const Locale('en');
       }
+      ApiService.setLanguage(_locale.languageCode);
     });
   }
 
@@ -75,6 +79,7 @@ class _MyAppState extends State<MyApp> {
   Future<void> changeLanguage(Locale locale) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('language', locale.languageCode);
+    ApiService.setLanguage(locale.languageCode);
     setState(() {
       _locale = locale;
     });

@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import '../../constants/app_strings.dart';
 import '../../models/equipment.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -13,28 +14,32 @@ class PdfPreviewScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('PDF Preview'),
+        title: Text(strings.reportPreview),
       ),
       body: Builder(
         builder: (context) => PdfPreview(
-          build: (format) => _generatePdf(format, equipments),
+          build: (format) => _generatePdf(format, equipments, strings),
+          canChangePageFormat: false,
+          canChangeOrientation: false,
+          canDebug: false,
         ),
       ),
     );
   }
 
   Future<Uint8List> _generatePdf(
-      PdfPageFormat format, List<Equipment> equipments) async {
+      PdfPageFormat format, List<Equipment> equipments, AppStrings strings) async {
     final pdf = pw.Document();
 
     pdf.addPage(
       pw.MultiPage(
         pageFormat: format.landscape,
-        header: (context) => pw.Text('Consolidated Equipment Report', style: pw.Theme.of(context).header2),
+        header: (context) => pw.Text(strings.datasheetReport, style: pw.Theme.of(context).header2),
         build: (context) => [
-          _buildEquipmentTable(context, equipments),
+          _buildEquipmentTable(context, equipments, strings),
         ],
       ),
     );
@@ -42,17 +47,17 @@ class PdfPreviewScreen extends StatelessWidget {
     return pdf.save();
   }
 
-  pw.Widget _buildEquipmentTable(pw.Context context, List<Equipment> equipments) {
+  pw.Widget _buildEquipmentTable(pw.Context context, List<Equipment> equipments, AppStrings strings) {
     final headers = [
-      'Codigo',
-      'Nombre',
-      'Tipo',
-      'Marca',
-      'Org. ID',
-      'Caracteristicas',
-      'Estado',
-      'Ult. Mant.',
-      'Prox. Mant.'
+      strings.assetCode,
+      strings.name,
+      strings.type,
+      strings.brand,
+      strings.organizationManagement,
+      strings.characteristics,
+      strings.status,
+      strings.lastMaintenanceShort,
+      strings.nextMaintenanceShort,
     ];
 
     final data = equipments.map((equipment) {
@@ -61,7 +66,7 @@ class PdfPreviewScreen extends StatelessWidget {
         equipment.nombre,
         equipment.tipo,
         equipment.marca,
-        equipment.organizationId?.toString() ?? '',
+        equipment.organization?.nombre ?? strings.notAvailable,
         equipment.characteristics,
         equipment.estado,
         equipment.ultimoMantenimiento != null ? DateFormat('dd-MM-yyyy').format(equipment.ultimoMantenimiento!) : '',
@@ -81,7 +86,7 @@ class PdfPreviewScreen extends StatelessWidget {
         1: pw.Alignment.centerLeft,
         2: pw.Alignment.center,
         3: pw.Alignment.center,
-        4: pw.Alignment.center,
+        4: pw.Alignment.centerLeft,
         5: pw.Alignment.centerLeft,
         6: pw.Alignment.center,
         7: pw.Alignment.center,

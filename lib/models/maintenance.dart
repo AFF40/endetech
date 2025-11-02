@@ -8,8 +8,8 @@ class Maintenance {
   final DateTime? fechaReal;
   final String? observaciones;
   final String estado;
-  final Equipment equipo;
-  final Technician tecnico;
+  final Equipment? equipo; // Made nullable
+  final Technician? tecnico; // Made nullable
   final List<Task> tareas;
 
   const Maintenance({
@@ -18,8 +18,8 @@ class Maintenance {
     this.fechaReal,
     this.observaciones,
     required this.estado,
-    required this.equipo,
-    required this.tecnico,
+    this.equipo, // Made nullable
+    this.tecnico, // Made nullable
     required this.tareas,
   });
 
@@ -30,9 +30,16 @@ class Maintenance {
       fechaReal: json['fecha_real'] != null ? DateTime.parse(json['fecha_real']) : null,
       observaciones: json['observaciones'],
       estado: json['estado'],
-      equipo: Equipment.fromJson(json['equipo']),
-      tecnico: Technician.fromJson(json['tecnico']),
-      tareas: (json['tareas'] as List).map((taskJson) => Task.fromJson(taskJson)).toList(),
+      // Safely parse nested objects
+      equipo: json['equipo'] != null && json['equipo'] is Map<String, dynamic> 
+          ? Equipment.fromJson(json['equipo']) 
+          : null,
+      tecnico: json['tecnico'] != null && json['tecnico'] is Map<String, dynamic> 
+          ? Technician.fromJson(json['tecnico']) 
+          : null,
+      tareas: json['tareas'] != null
+          ? (json['tareas'] as List).map((taskJson) => Task.fromJson(taskJson)).toList()
+          : [],
     );
   }
 
