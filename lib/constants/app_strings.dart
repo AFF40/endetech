@@ -68,6 +68,7 @@ abstract class AppStrings {
   String get alreadyHaveAccount;
   String get continueAsGuest;
   String get registrationSuccess;
+  String get start;
 
   // Dashboard & Settings
   String get dashboard;
@@ -231,7 +232,7 @@ class EnStrings implements AppStrings {
 
   // Login & Registration
   @override String get welcomeBack => 'ENDETECH';
-  @override String get signInToContinue => 'Sign in to continue to Endetech';
+  @override String get signInToContinue => 'Start to continue to Endetech';
   @override String get username => 'Username';
   @override String get pleaseEnterUsername => 'Please enter your username';
   @override String get password => 'Password';
@@ -252,6 +253,7 @@ class EnStrings implements AppStrings {
   @override String get alreadyHaveAccount => 'Already have an account? Log in';
   @override String get continueAsGuest => 'Continue as Guest';
   @override String get registrationSuccess => 'Registration successful. Please log in.';
+  @override String get start => 'START';
 
   // Dashboard & Settings
   @override String get dashboard => 'Dashboard';
@@ -415,7 +417,7 @@ class EsStrings implements AppStrings {
 
   // Login & Registration
   @override String get welcomeBack => 'ENDETECH';
-  @override String get signInToContinue => 'Inicia sesión para continuar en Endetech';
+  @override String get signInToContinue => 'Iniciar para continuar en Endetech';
   @override String get username => 'Usuario';
   @override String get pleaseEnterUsername => 'Por favor, introduce tu usuario';
   @override String get password => 'Contraseña';
@@ -436,6 +438,7 @@ class EsStrings implements AppStrings {
   @override String get alreadyHaveAccount => '¿Ya tienes una cuenta? Inicia sesión';
   @override String get continueAsGuest => 'Continuar como Invitado';
   @override String get registrationSuccess => 'Registro exitoso. Por favor, inicie sesión.';
+  @override String get start => 'INICIAR';
 
   // Dashboard & Settings
   @override String get dashboard => 'Panel Principal';

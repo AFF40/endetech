@@ -23,8 +23,6 @@ class _EquipmentEditScreenState extends State<EquipmentEditScreen> {
   late TextEditingController _nombreController;
   late TextEditingController _tipoController;
   late TextEditingController _marcaController;
-  late TextEditingController _ultimoMantenimientoController;
-  late TextEditingController _proximoMantenimientoController;
   late TextEditingController _sistemaOperativoController;
   late TextEditingController _procesadorController;
   late TextEditingController _memoriaRamController;
@@ -73,8 +71,6 @@ class _EquipmentEditScreenState extends State<EquipmentEditScreen> {
     _marcaController = TextEditingController(text: widget.equipment?.marca ?? '');
     _selectedEstado = widget.equipment?.estado ?? 'activo';
     _selectedOrganizationId = widget.equipment?.organization?.id;
-    _ultimoMantenimientoController = TextEditingController(text: widget.equipment?.ultimoMantenimiento != null ? DateFormat('yyyy-MM-dd').format(widget.equipment!.ultimoMantenimiento!) : '');
-    _proximoMantenimientoController = TextEditingController(text: widget.equipment?.proximoMantenimiento != null ? DateFormat('yyyy-MM-dd').format(widget.equipment!.proximoMantenimiento!) : '');
     _sistemaOperativoController = TextEditingController(text: widget.equipment?.sistemaOperativo ?? '');
     _procesadorController = TextEditingController(text: widget.equipment?.procesador ?? '');
     _memoriaRamController = TextEditingController(text: widget.equipment?.memoriaRam ?? '');
@@ -87,8 +83,6 @@ class _EquipmentEditScreenState extends State<EquipmentEditScreen> {
     _nombreController.dispose();
     _tipoController.dispose();
     _marcaController.dispose();
-    _ultimoMantenimientoController.dispose();
-    _proximoMantenimientoController.dispose();
     _sistemaOperativoController.dispose();
     _procesadorController.dispose();
     _memoriaRamController.dispose();
@@ -111,8 +105,6 @@ class _EquipmentEditScreenState extends State<EquipmentEditScreen> {
       'marca': _marcaController.text,
       'organization_id': _selectedOrganizationId,
       'estado': _selectedEstado,
-      'ultimo_mantenimiento': _ultimoMantenimientoController.text,
-      'proximo_mantenimiento': _proximoMantenimientoController.text,
       'sistema_operativo': _sistemaOperativoController.text,
       'procesador': _procesadorController.text,
       'memoria_ram': _memoriaRamController.text,
@@ -216,10 +208,6 @@ class _EquipmentEditScreenState extends State<EquipmentEditScreen> {
                                 },
                                 validator: (value) => (value == null || value.isEmpty) ? strings.fieldIsRequired : null,
                               ),
-                              const SizedBox(height: 16),
-                              TextFormField(controller: _ultimoMantenimientoController, decoration: InputDecoration(labelText: strings.lastMaintenanceShort, hintText: 'YYYY-MM-DD', border: const OutlineInputBorder())),
-                              const SizedBox(height: 16),
-                              TextFormField(controller: _proximoMantenimientoController, decoration: InputDecoration(labelText: strings.nextMaintenanceShort, hintText: 'YYYY-MM-DD', border: const OutlineInputBorder())),
                               const SizedBox(height: 16),
                               TextFormField(controller: _sistemaOperativoController, decoration: InputDecoration(labelText: strings.so, border: const OutlineInputBorder())),
                               const SizedBox(height: 16),
