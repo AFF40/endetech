@@ -221,52 +221,69 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
                     Expanded(
                       child: _filteredEquipments.isEmpty
                           ? Center(child: Text(strings.noResultsFound))
-                          : SingleChildScrollView(
+                          : LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
                             scrollDirection: Axis.vertical,
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
-                                child: DataTable(
-                                  sortColumnIndex: _sortColumnIndex,
-                                  sortAscending: _sortAscending,
-                                  onSelectAll: (selected) => setState(() => selected! ? _selectedEquipments.addAll(_filteredEquipments) : _selectedEquipments.clear()),
-                                  columns: [
-                                    DataColumn(label: Text(strings.assetCode), onSort: _onSort),
-                                    DataColumn(label: Text(strings.equipmentName), onSort: _onSort),
-                                    DataColumn(label: Text(strings.type), onSort: _onSort),
-                                    DataColumn(label: Text(strings.brand), onSort: _onSort),
-                                    DataColumn(label: Text(strings.organizationManagement), onSort: _onSort),
-                                    DataColumn(label: Text(strings.status), onSort: _onSort),
-                                    DataColumn(label: Text(strings.lastMaintenanceShort), onSort: _onSort),
-                                    DataColumn(label: Text(strings.nextMaintenanceShort), onSort: _onSort),
-                                    DataColumn(label: Text(strings.actions)),
-                                  ],
-                                  rows: _filteredEquipments.map((equipment) {
-                                    return DataRow(
-                                      selected: _selectedEquipments.contains(equipment),
-                                      onSelectChanged: (selected) => setState(() => selected! ? _selectedEquipments.add(equipment) : _selectedEquipments.remove(equipment)),
-                                      cells: [
-                                        DataCell(Text(equipment.codigo)),
-                                        DataCell(Text(equipment.nombre)),
-                                        DataCell(Text(equipment.tipo)),
-                                        DataCell(Text(equipment.marca)),
-                                        DataCell(Text(equipment.organization?.nombre ?? strings.notAvailable)),
-                                        DataCell(Text(equipment.estado)),
-                                        DataCell(Text(equipment.ultimoMantenimiento != null ? DateFormat('dd/MM/yyyy').format(equipment.ultimoMantenimiento!) : '')),
-                                        DataCell(Text(equipment.proximoMantenimiento != null ? DateFormat('dd/MM/yyyy').format(equipment.proximoMantenimiento!) : '')),
-                                        DataCell(Row(children: [
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minWidth: constraints.maxWidth, // se adapta al ancho del contenedor
+                                maxWidth: constraints.maxWidth, // ocupa todo el ancho disponible
+                              ),
+                              child: DataTable(
+                                columnSpacing: constraints.maxWidth * 0.02, // espacio relativo
+                                headingRowHeight: 48,
+                                dataRowHeight: 48,
+                                sortColumnIndex: _sortColumnIndex,
+                                sortAscending: _sortAscending,
+                                onSelectAll: (selected) => setState(() => selected!
+                                    ? _selectedEquipments.addAll(_filteredEquipments)
+                                    : _selectedEquipments.clear()),
+                                columns: [
+                                  DataColumn(label: Text(strings.assetCode), onSort: _onSort),
+                                  DataColumn(label: Text(strings.equipmentName), onSort: _onSort),
+                                  DataColumn(label: Text(strings.type), onSort: _onSort),
+                                  DataColumn(label: Text(strings.brand), onSort: _onSort),
+                                  DataColumn(label: Text(strings.organizationManagement), onSort: _onSort),
+                                  DataColumn(label: Text(strings.status), onSort: _onSort),
+                                  DataColumn(label: Text(strings.lastMaintenanceShort), onSort: _onSort),
+                                  DataColumn(label: Text(strings.nextMaintenanceShort), onSort: _onSort),
+                                  DataColumn(label: Text(strings.actions)),
+                                ],
+                                rows: _filteredEquipments.map((equipment) {
+                                  return DataRow(
+                                    selected: _selectedEquipments.contains(equipment),
+                                    onSelectChanged: (selected) => setState(() => selected!
+                                        ? _selectedEquipments.add(equipment)
+                                        : _selectedEquipments.remove(equipment)),
+                                    cells: [
+                                      DataCell(Text(equipment.codigo)),
+                                      DataCell(Text(equipment.nombre)),
+                                      DataCell(Text(equipment.tipo)),
+                                      DataCell(Text(equipment.marca)),
+                                      DataCell(Text(equipment.organization?.nombre ?? strings.notAvailable)),
+                                      DataCell(Text(equipment.estado)),
+                                      DataCell(Text(equipment.ultimoMantenimiento != null
+                                          ? DateFormat('dd/MM/yyyy').format(equipment.ultimoMantenimiento!)
+                                          : '')),
+                                      DataCell(Text(equipment.proximoMantenimiento != null
+                                          ? DateFormat('dd/MM/yyyy').format(equipment.proximoMantenimiento!)
+                                          : '')),
+                                      DataCell(Row(
+                                        children: [
                                           IconButton(icon: const Icon(Icons.edit), onPressed: () => _navigateToEditScreen(equipment)),
                                           IconButton(icon: const Icon(Icons.print), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PdfPreviewScreen(equipments: [equipment])))),
                                           IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _showDeleteConfirmation(context, equipment, strings)),
-                                        ])),
-                                      ],
-                                    );
-                                  }).toList(),
-                                ),
+                                        ],
+                                      )),
+                                    ],
+                                  );
+                                }).toList(),
                               ),
                             ),
-                          ),
+                          );
+                        },
+                      ),
                     ),
                   ],
                 ),
