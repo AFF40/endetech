@@ -202,7 +202,7 @@ class EnStrings implements AppStrings {
   @override String get type => 'Type';
   @override String get brand => 'Brand';
   @override String get name => 'Name';
-  @override String get description => 'Description';
+  @override String get description => 'Descripcion';
   @override String get date => 'Date';
   @override String get allStatuses => 'All Statuses';
   @override String get allTypes => 'All Types';
@@ -336,7 +336,7 @@ class EnStrings implements AppStrings {
   @override String get addTask => 'Add Task';
   @override String get searchTasks => 'Search tasks...';
   @override String get taskTemplates => 'Task Templates';
-  @override String get taskDescription => 'Task Description';
+  @override String get taskDescription => 'Task Descripcion';
   @override String get editTaskTemplate => 'Edit Task';
   @override String get addTaskTemplate => 'Add Task';
   @override String get deleteTaskTemplate => 'Delete Task';
