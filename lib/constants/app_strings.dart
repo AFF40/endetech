@@ -134,6 +134,7 @@ abstract class AppStrings {
   String get confirmCompleteMaintenance;
   String get markAsCompleted;
   String get completed;
+  String get pending;
   String get maintenanceDeleted;
   String get maintenanceUpdated;
   String get maintenanceCreated;
@@ -319,6 +320,7 @@ class EnStrings implements AppStrings {
   @override String get confirmCompleteMaintenance => 'Are you sure you want to mark this maintenance as completed?';
   @override String get markAsCompleted => 'Mark as Completed';
   @override String get completed => 'Completed';
+  @override String get pending => 'Pending';
   @override String get maintenanceDeleted => 'Maintenance deleted';
   @override String get maintenanceUpdated => 'Maintenance updated';
   @override String get maintenanceCreated => 'Maintenance created';
@@ -504,6 +506,7 @@ class EsStrings implements AppStrings {
   @override String get confirmCompleteMaintenance => '¿Estás seguro que quieres marcar este mantenimiento como completado?';
   @override String get markAsCompleted => 'Marcar como Completado';
   @override String get completed => 'Completado';
+  @override String get pending => 'Pendiente';
   @override String get maintenanceDeleted => 'Mantenimiento eliminado';
   @override String get maintenanceUpdated => 'Mantenimiento actualizado';
   @override String get maintenanceCreated => 'Mantenimiento creado';

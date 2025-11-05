@@ -39,6 +39,9 @@ class _MaintenanceProgrammingScreenState
   String _errorMessage = '';
   bool _isSaving = false;
 
+  // Represents the status: true for 'pendiente', false for 'completado'
+  bool _isPending = true; 
+
   @override
   void initState() {
     super.initState();
@@ -107,6 +110,7 @@ class _MaintenanceProgrammingScreenState
   void _loadMaintenanceData(Maintenance maintenance) {
     _selectedDate = maintenance.fechaProgramada;
     _observationsController.text = maintenance.observaciones ?? '';
+    _isPending = maintenance.estado == 'pendiente';
 
     try {
       _selectedEquipment = _equipments.firstWhere((e) => e.id == maintenance.equipo?.id);
@@ -153,6 +157,7 @@ class _MaintenanceProgrammingScreenState
       'tecnico_id': _selectedTechnician!.id,
       'observaciones': _observationsController.text,
       'tareas': _selectedTasks.map((task) => task.id).toList(),
+      'estado': _isPending ? 'pendiente' : 'completado',
     };
 
     final isEditing = widget.maintenanceToEdit != null;
@@ -337,6 +342,19 @@ class _MaintenanceProgrammingScreenState
                                 decoration: InputDecoration(labelText: strings.observations, border: const OutlineInputBorder()),
                                 maxLines: 3,
                               ),
+                              const SizedBox(height: 16),
+                              if (isEditing)
+                                SwitchListTile(
+                                  title: Text(strings.status),
+                                  subtitle: Text(_isPending ? strings.pending : strings.completed),
+                                  value: _isPending,
+                                  onChanged: (bool value) {
+                                    setState(() {
+                                      _isPending = value;
+                                    });
+                                  },
+                                  secondary: Icon(_isPending ? Icons.pending_actions : Icons.check_circle, color: _isPending ? Colors.orange : Colors.green),
+                                ),
                               const SizedBox(height: 32),
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(

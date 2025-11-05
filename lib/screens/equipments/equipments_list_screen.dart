@@ -23,7 +23,7 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
 
   final _searchController = TextEditingController();
   final Set<Equipment> _selectedEquipments = {};
-  int _sortColumnIndex = 0;
+  int _sortColumnIndex = 7;
   bool _sortAscending = true;
 
   String? _selectedBrand;
@@ -112,6 +112,13 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
 
   void _sortFilteredList() {
     _filteredEquipments.sort((a, b) {
+      int compareDates(DateTime? a, DateTime? b) {
+        if (a == null && b == null) return 0;
+        if (a == null) return 1; // nulls at end
+        if (b == null) return -1;
+        return a.compareTo(b);
+      }
+
       int result = 0;
       switch (_sortColumnIndex) {
         case 0: result = a.codigo.compareTo(b.codigo); break;
@@ -120,8 +127,8 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
         case 3: result = a.marca.compareTo(b.marca); break;
         case 4: result = (a.organization?.nombre ?? '').compareTo(b.organization?.nombre ?? ''); break;
         case 5: result = a.estado.compareTo(b.estado); break;
-        case 6: result = (a.ultimoMantenimiento ?? DateTime(0)).compareTo(b.ultimoMantenimiento ?? DateTime(0)); break;
-        case 7: result = (a.proximoMantenimiento ?? DateTime(0)).compareTo(b.proximoMantenimiento ?? DateTime(0)); break;
+        case 6: result = compareDates(a.ultimoMantenimiento, b.ultimoMantenimiento); break;
+        case 7: result = compareDates(a.proximoMantenimiento, b.proximoMantenimiento); break;
       }
       return _sortAscending ? result : -result;
     });
@@ -173,6 +180,31 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
     if (result == true) {
       _fetchEquipments();
     }
+  }
+
+  Color? _getRowColor(Equipment equipment) {
+    if (equipment.proximoMantenimiento == null) return null;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // Convertir a hora local y normalizar (sin horas/minutos)
+    final nextUtc = equipment.proximoMantenimiento!;
+    final nextLocal = nextUtc.isUtc ? nextUtc.toLocal() : nextUtc;
+    final next = DateTime(nextLocal.year, nextLocal.month, nextLocal.day);
+
+    final daysUntilNext = next.difference(today).inDays;
+
+    if (daysUntilNext < 0) {
+      return Colors.red.withOpacity(0.5); // vencido
+    } else if (daysUntilNext == 0) {
+      return Colors.red.withOpacity(0.5); // hoy
+    } else if (daysUntilNext <= 14) {
+      return Colors.orange.withOpacity(0.4); // próximos 14 días
+    } else if (daysUntilNext <= 28) {
+      return Colors.yellow.withOpacity(0.4); // próximos 28 días
+    }
+    return null;
   }
 
   Widget _buildErrorView() {
@@ -252,6 +284,9 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
                                 ],
                                 rows: _filteredEquipments.map((equipment) {
                                   return DataRow(
+                                    color: MaterialStateProperty.resolveWith<Color?>((Set<MaterialState> states) {
+                                      return _getRowColor(equipment);
+                                    }),
                                     selected: _selectedEquipments.contains(equipment),
                                     onSelectChanged: (selected) => setState(() => selected!
                                         ? _selectedEquipments.add(equipment)

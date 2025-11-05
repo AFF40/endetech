@@ -26,7 +26,7 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
   String _errorMessage = '';
 
   final Set<Maintenance> _selectedMaintenances = {};
-  int _sortColumnIndex = 0;
+  int _sortColumnIndex = 4;
   bool _sortAscending = true;
 
   String? _selectedStatus;
@@ -138,16 +138,30 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
   void _sortFilteredList() {
     final strings = AppStrings.of(context);
     _filteredMaintenances.sort((a, b) {
+      // If sorting by status column, let it be the primary sort criterion
+      if (_sortColumnIndex == 5) {
+        final result = a.estado.compareTo(b.estado);
+        return _sortAscending ? result : -result;
+      }
+
+      // For any other column, first prioritize by status: 'pendiente' before 'completado'
+      final statusA = a.estado == 'pendiente' ? 0 : 1;
+      final statusB = b.estado == 'pendiente' ? 0 : 1;
+      final statusCompare = statusA.compareTo(statusB);
+
+      if (statusCompare != 0) {
+        return statusCompare; // 'pendiente' comes first
+      }
+
+      // If statuses are the same, sort by the selected column
       int result = 0;
       switch (_sortColumnIndex) {
-        case 0: result = a.equipo?.codigo.compareTo(b.equipo?.codigo ?? '') ?? 0; break;
-        case 1: result = a.equipo?.nombre.compareTo(b.equipo?.nombre ?? '') ?? 0; break;
-        case 2: 
-          result = (a.equipo?.organization?.nombre ?? '').compareTo(b.equipo?.organization?.nombre ?? '');
-          break;
-        case 3: result = a.tecnico?.fullName.compareTo(b.tecnico?.fullName ?? strings.unassigned) ?? 0; break;
+        case 0: result = (a.equipo?.codigo ?? '').compareTo(b.equipo?.codigo ?? ''); break;
+        case 1: result = (a.equipo?.nombre ?? '').compareTo(b.equipo?.nombre ?? ''); break;
+        case 2: result = (a.equipo?.organization?.nombre ?? '').compareTo(b.equipo?.organization?.nombre ?? ''); break;
+        case 3: result = (a.tecnico?.fullName ?? strings.unassigned).compareTo(b.tecnico?.fullName ?? strings.unassigned); break;
         case 4: result = a.fechaProgramada.compareTo(b.fechaProgramada); break;
-        case 5: result = a.estado.compareTo(b.estado); break;
+        // case 5 (status) is handled above, but other columns are the secondary criteria here
       }
       return _sortAscending ? result : -result;
     });
@@ -238,7 +252,31 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
       }
     }
   }
-  
+
+  Color? _getRowColor(Maintenance maintenance) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final maintenanceDate = DateTime(
+      maintenance.fechaProgramada.year,
+      maintenance.fechaProgramada.month,
+      maintenance.fechaProgramada.day,
+    );
+    final daysUntilNext = maintenanceDate.difference(today).inDays;
+    if (maintenance.estado != 'completado') {
+      if (daysUntilNext < 0) {
+        return Colors.red.withOpacity(0.5); // Vencido
+      } else if (daysUntilNext == 0) {
+        return Colors.red.withOpacity(0.5); // Vence hoy
+      } else if (daysUntilNext <= 14) {
+        return Colors.orange.withOpacity(0.4); // Próximo a vencer (14 días)
+      } else if (daysUntilNext <= 28) {
+        return Colors.yellow.withOpacity(0.4); // Próximo a vencer (28 días)
+      }
+    }
+    return null; // Sin color para completados o no próximos a vencer
+  }
+
+
   Widget _buildErrorView() {
     final strings = AppStrings.of(context);
     return Center(
@@ -307,6 +345,9 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
                               ],
                               rows: _filteredMaintenances.map((maintenance) {
                                 return DataRow(
+                                  color: MaterialStateProperty.resolveWith<Color?>((Set<MaterialState> states) {
+                                    return _getRowColor(maintenance);
+                                  }),
                                   selected: _selectedMaintenances.contains(maintenance),
                                   onSelectChanged: (selected) => setState(() => selected! ? _selectedMaintenances.add(maintenance) : _selectedMaintenances.remove(maintenance)),
                                   cells: [
@@ -351,7 +392,11 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
               ),
             )
           : null,
-      floatingActionButton: FloatingActionButton(onPressed: () => _navigateToEditScreen(null), tooltip: strings.addMaintenance, child: const Icon(Icons.add)),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _navigateToEditScreen(null),
+        tooltip: strings.scheduleMaintenance,
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }
