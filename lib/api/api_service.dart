@@ -34,6 +34,7 @@ class ApiService {
   static String mantenimientoById(int id) => '$baseUrl/mantenimientos/$id';
   static String updateMantenimiento(int id) => '$baseUrl/mantenimientos/$id'; // POST for update
 
+
   // Organizations
   static const String organizations = '$baseUrl/organizations';
   static String organizationById(int id) => '$baseUrl/organizations/$id';

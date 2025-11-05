@@ -134,7 +134,7 @@ class ApiService {
     final url = Uri.parse('$_baseUrl/mantenimientos/$id');
     final body = {...data, 'id': id};
     try {
-      final response = await http.post(url, headers: _headers, body: jsonEncode(body));
+      final response = await http.put(url, headers: _headers, body: jsonEncode(body));
       return await _handleResponse(response);
     } catch (e) {
       return _handleConnectionError(e);

@@ -43,7 +43,7 @@ class _OrganizationEditScreenState extends State<OrganizationEditScreen> {
 
     final data = {
       'nombre': _nameController.text,
-      'description': _descriptionController.text,
+      'descripcion': _descriptionController.text,
     };
 
     final isEditing = widget.organization != null;
