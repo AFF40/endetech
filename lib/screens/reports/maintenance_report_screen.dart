@@ -37,10 +37,15 @@ class _MaintenanceReportScreenState extends State<MaintenanceReportScreen> {
   bool _isLoading = true;
   String _errorMessage = '';
 
+  bool _didFetchData = false;
+
   @override
-  void initState() {
-    super.initState();
-    _fetchFilterData();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didFetchData) {
+      _fetchFilterData();
+      _didFetchData = true;
+    }
   }
 
   Future<void> _fetchFilterData() async {
@@ -51,9 +56,9 @@ class _MaintenanceReportScreenState extends State<MaintenanceReportScreen> {
 
     try {
       final results = await Future.wait([
-        _apiService.getTecnicos(),
-        _apiService.getEquipos(),
-        _apiService.getMantenimientos(),
+        _apiService.getTecnicos(context),
+        _apiService.getEquipos(context),
+        _apiService.getMantenimientos(context),
       ]);
 
       if (!mounted) return;

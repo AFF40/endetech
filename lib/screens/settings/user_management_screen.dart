@@ -1,3 +1,4 @@
+import 'package:endetech/constants/app_strings.dart';
 import 'package:flutter/material.dart';
 
 class UserManagementScreen extends StatelessWidget {
@@ -5,12 +6,13 @@ class UserManagementScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('User/Role Management'),
+        title: Text(strings.userManagement),
       ),
-      body: const Center(
-        child: Text('User/Role Management Screen'),
+      body: Center(
+        child: Text(strings.userManagementScreenBody),
       ),
     );
   }

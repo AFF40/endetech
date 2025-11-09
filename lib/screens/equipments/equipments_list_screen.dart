@@ -33,11 +33,21 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
   List<String> _uniqueTypes = [];
   final List<String> _statuses = ['activo', 'en reparación'];
 
+  bool _didFetchData = false;
+
   @override
   void initState() {
     super.initState();
-    _fetchEquipments();
     _searchController.addListener(_applyFilters);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didFetchData) {
+      _fetchEquipments();
+      _didFetchData = true;
+    }
   }
 
   @override
@@ -52,7 +62,7 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
       _errorMessage = '';
     });
 
-    final result = await _apiService.getEquipos();
+    final result = await _apiService.getEquipos(context);
 
     if (mounted) {
       if (result['success']) {
@@ -136,7 +146,7 @@ class _EquipmentsListScreenState extends State<EquipmentsListScreen> {
 
   Future<void> _deleteEquipment(int id) async {
     if (!mounted) return;
-    final result = await _apiService.deleteEquipo(id);
+    final result = await _apiService.deleteEquipo(context, id);
     final strings = AppStrings.of(context);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

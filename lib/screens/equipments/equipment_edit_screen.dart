@@ -38,20 +38,30 @@ class _EquipmentEditScreenState extends State<EquipmentEditScreen> {
 
   final List<String> _estados = ['activo', 'en reparación'];
 
+  bool _didFetchData = false;
+
   @override
   void initState() {
     super.initState();
-    _fetchInitialData();
+    _initializeControllers();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didFetchData) {
+      _fetchInitialData();
+      _didFetchData = true;
+    }
   }
 
   Future<void> _fetchInitialData() async {
-    final result = await _apiService.getOrganizations();
+    final result = await _apiService.getOrganizations(context);
     if (mounted) {
       if (result['success']) {
         final List<dynamic> data = result['data']['organizations'];
         setState(() {
           _organizations = data.map((json) => Organization.fromJson(json)).toList();
-          _initializeControllers();
           _isLoadingData = false;
         });
       } else {
@@ -115,8 +125,8 @@ class _EquipmentEditScreenState extends State<EquipmentEditScreen> {
 
     final isEditing = widget.equipment != null;
     final result = isEditing
-        ? await _apiService.updateEquipo(widget.equipment!.id, data)
-        : await _apiService.createEquipo(data);
+        ? await _apiService.updateEquipo(context, widget.equipment!.id, data)
+        : await _apiService.createEquipo(context, data);
 
     setState(() {
       _isSaving = false;

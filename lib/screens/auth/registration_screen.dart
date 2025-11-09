@@ -33,7 +33,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         _isLoading = true;
       });
 
-      final result = await _apiService.register({
+      final result = await _apiService.register(context, {
         'name': _nameController.text,
         'email': _emailController.text,
         'password': _passwordController.text,

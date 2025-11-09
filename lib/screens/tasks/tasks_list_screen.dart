@@ -21,11 +21,21 @@ class _TasksListScreenState extends State<TasksListScreen> {
   int _sortColumnIndex = 0;
   bool _sortAscending = true;
 
+  bool _didFetchData = false;
+
   @override
   void initState() {
     super.initState();
-    _fetchTasks();
     _searchController.addListener(_applyFilters);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didFetchData) {
+      _fetchTasks();
+      _didFetchData = true;
+    }
   }
 
   @override
@@ -40,7 +50,7 @@ class _TasksListScreenState extends State<TasksListScreen> {
       _errorMessage = '';
     });
 
-    final result = await _apiService.getTareas();
+    final result = await _apiService.getTareas(context);
 
     if (mounted) {
       if (result['success']) {
@@ -115,13 +125,13 @@ class _TasksListScreenState extends State<TasksListScreen> {
                       controller: nameController,
                       autofocus: true,
                       decoration: InputDecoration(labelText: strings.name),
-                      validator: (value) => (value == null || value.isEmpty) ? 'El nombre es requerido' : null,
+                      validator: (value) => (value == null || value.isEmpty) ? strings.nameRequired : null,
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: descriptionController,
                       decoration: InputDecoration(labelText: strings.description),
-                       validator: (value) => (value == null || value.isEmpty) ? 'La descripción es requerida' : null,
+                       validator: (value) => (value == null || value.isEmpty) ? strings.descriptionRequired : null,
                     ),
                   ],
                 ),
@@ -139,15 +149,15 @@ class _TasksListScreenState extends State<TasksListScreen> {
                       };
 
                       final result = isEditing
-                          ? await _apiService.updateTarea(task.id, data)
-                          : await _apiService.createTarea(data);
+                          ? await _apiService.updateTarea(context, task.id, data)
+                          : await _apiService.createTarea(context, data);
 
                       if(mounted){
                           Navigator.pop(dialogContext);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text(result['success'] 
-                                ? (result['data']?['message'] ?? (isEditing ? 'Tarea actualizada' : 'Tarea creada')) 
-                                : result['message']))
+                                ? (result['data']?['message'] ?? (isEditing ? strings.taskUpdated : strings.taskCreated)) 
+                                : result['message'] ?? strings.unexpectedErrorOccurred))
                           );
                           if(result['success']){
                               _fetchTasks();
@@ -177,13 +187,13 @@ class _TasksListScreenState extends State<TasksListScreen> {
             TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(strings.cancel)),
             TextButton(
               onPressed: () async {
-                final result = await _apiService.deleteTarea(taskToDelete.id);
+                final result = await _apiService.deleteTarea(context, taskToDelete.id);
                 if(mounted){
                     Navigator.pop(dialogContext);
                     ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text(result['success'] 
-                            ? (result['data']?['message'] ?? 'Tarea eliminada') 
-                            : result['message']))
+                            ? (result['data']?['message'] ?? strings.taskDeleted) 
+                            : result['message'] ?? strings.unexpectedErrorOccurred))
                     );
                     if(result['success']){
                         _fetchTasks();
@@ -200,13 +210,14 @@ class _TasksListScreenState extends State<TasksListScreen> {
   }
   
   Widget _buildErrorView() {
+    final strings = AppStrings.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(_errorMessage, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _fetchTasks, child: const Text('Reintentar')), // TODO: Internationalize
+          ElevatedButton(onPressed: _fetchTasks, child: Text(strings.retry)),
         ],
       ),
     );
@@ -233,7 +244,7 @@ class _TasksListScreenState extends State<TasksListScreen> {
                 ),
                 Expanded(
                   child: _filteredTasks.isEmpty
-                      ? const Center(child: Text('No se encontraron resultados')) // TODO: Internationalize
+                      ? Center(child: Text(strings.noResultsFound))
                       : SingleChildScrollView(
                           scrollDirection: Axis.vertical,
                           child: SingleChildScrollView(
@@ -257,8 +268,8 @@ class _TasksListScreenState extends State<TasksListScreen> {
                                         Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _showTaskDialog(task: task), tooltip: 'Editar'),
-                                            IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _showDeleteConfirmation(task), tooltip: 'Eliminar'),
+                                            IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _showTaskDialog(task: task), tooltip: strings.editTaskTooltip),
+                                            IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _showDeleteConfirmation(task), tooltip: strings.deleteTaskTooltip),
                                           ],
                                         ),
                                       ),

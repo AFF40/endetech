@@ -23,11 +23,21 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
   final _searchController = TextEditingController();
   final Set<Technician> _selectedTechnicians = {};
 
+  bool _didFetchData = false;
+
   @override
   void initState() {
     super.initState();
-    _fetchTechnicians();
     _searchController.addListener(_applyFilters);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didFetchData) {
+      _fetchTechnicians();
+      _didFetchData = true;
+    }
   }
 
   @override
@@ -42,7 +52,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
       _errorMessage = '';
     });
 
-    final result = await _apiService.getTecnicos();
+    final result = await _apiService.getTecnicos(context);
 
     if (mounted) {
       if (result['success']) {
@@ -72,12 +82,13 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
   }
 
   Future<void> _deleteTechnician(int id) async {
-    final result = await _apiService.deleteTecnico(id);
+    final result = await _apiService.deleteTecnico(context, id);
     if (mounted) {
+      final strings = AppStrings.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result['success'] 
-            ? (result['data']?['message'] ?? 'Técnico eliminado') 
-            : result['message'])),
+            ? (result['data']?['message'] ?? strings.technicianDeleted) 
+            : result['message'] ?? strings.unexpectedErrorOccurred)),
       );
       if (result['success']) {
         _fetchTechnicians();
@@ -91,7 +102,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(strings.delete),
-          content: Text('¿Estás seguro de que quieres eliminar a ${technician.fullName}?'), // TODO: Internationalize
+          content: Text(strings.deleteTechnicianConfirmation(technician.fullName)),
           actions: <Widget>[
             TextButton(child: Text(strings.cancel), onPressed: () => Navigator.of(context).pop()),
             TextButton(
@@ -118,13 +129,14 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
   }
   
   Widget _buildErrorView() {
+    final strings = AppStrings.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(_errorMessage, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _fetchTechnicians, child: const Text('Reintentar')), // TODO: Internationalize
+          ElevatedButton(onPressed: _fetchTechnicians, child: Text(strings.retry)),
         ],
       ),
     );
@@ -154,7 +166,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                 ),
                 Expanded(
                   child: _filteredTechnicians.isEmpty
-                      ? const Center(child: Text('No se encontraron resultados')) // TODO: Internationalize
+                      ? Center(child: Text(strings.noResultsFound))
                       : SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: ConstrainedBox(
@@ -198,7 +210,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => TechnicianPdfPreviewScreen(technicians: _selectedTechnicians.toList()))),
                   icon: const Icon(Icons.picture_as_pdf),
-                  label: Text('Generar PDF para ${_selectedTechnicians.length} técnicos'), // TODO: Internationalize
+                  label: Text(strings.generatePdfForN(_selectedTechnicians.length, strings.technicians.toLowerCase())),
                   style: ElevatedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: Theme.of(context).primaryColor),
                 ),
               ),

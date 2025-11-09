@@ -20,11 +20,21 @@ class _OrganizationsListScreenState extends State<OrganizationsListScreen> {
   String _errorMessage = '';
   final _searchController = TextEditingController();
 
+  bool _didFetchData = false;
+
   @override
   void initState() {
     super.initState();
-    _fetchOrganizations();
     _searchController.addListener(_applyFilters);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didFetchData) {
+      _fetchOrganizations();
+      _didFetchData = true;
+    }
   }
 
   @override
@@ -39,7 +49,7 @@ class _OrganizationsListScreenState extends State<OrganizationsListScreen> {
       _errorMessage = '';
     });
 
-    final result = await _apiService.getOrganizations();
+    final result = await _apiService.getOrganizations(context);
 
     if (mounted) {
       if (result['success']) {
@@ -68,12 +78,13 @@ class _OrganizationsListScreenState extends State<OrganizationsListScreen> {
   }
 
   Future<void> _deleteOrganization(int id) async {
-    final result = await _apiService.deleteOrganization(id);
+    final result = await _apiService.deleteOrganization(context, id);
     if (mounted) {
+      final strings = AppStrings.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result['success'] 
-            ? (result['data']?['message'] ?? 'Organización eliminada') 
-            : result['message'])),
+            ? (result['data']?['message'] ?? strings.organizationDeleted) 
+            : result['message'] ?? strings.unexpectedErrorOccurred)),
       );
       if (result['success']) {
         _fetchOrganizations();
@@ -87,7 +98,7 @@ class _OrganizationsListScreenState extends State<OrganizationsListScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(strings.delete),
-          content: Text('¿Estás seguro de que quieres eliminar la organización ${organization.nombre}?'), // TODO: Internationalize
+          content: Text(strings.confirmDelete('la organización ${organization.nombre}')),
           actions: <Widget>[
             TextButton(child: Text(strings.cancel), onPressed: () => Navigator.of(context).pop()),
             TextButton(
@@ -114,13 +125,14 @@ class _OrganizationsListScreenState extends State<OrganizationsListScreen> {
   }
 
   Widget _buildErrorView() {
+    final strings = AppStrings.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(_errorMessage, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _fetchOrganizations, child: const Text('Reintentar')),
+          ElevatedButton(onPressed: _fetchOrganizations, child: Text(strings.retry)),
         ],
       ),
     );
@@ -142,7 +154,7 @@ class _OrganizationsListScreenState extends State<OrganizationsListScreen> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Buscar por nombre...', // TODO: Internationalize
+                      hintText: strings.searchByName,
                       prefixIcon: const Icon(Icons.search),
                       border: const OutlineInputBorder(),
                     ),
@@ -150,7 +162,7 @@ class _OrganizationsListScreenState extends State<OrganizationsListScreen> {
                 ),
                 Expanded(
                   child: _filteredOrganizations.isEmpty
-                      ? const Center(child: Text('No se encontraron resultados')) // TODO: Internationalize
+                      ? Center(child: Text(strings.noResultsFound))
                       : SingleChildScrollView(
                         scrollDirection: Axis.vertical,
                         child: SingleChildScrollView(

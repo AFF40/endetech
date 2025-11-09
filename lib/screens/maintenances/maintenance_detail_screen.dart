@@ -1,4 +1,5 @@
 import 'package:endetech/api_service.dart';
+import 'package:endetech/constants/app_strings.dart';
 import 'package:endetech/models/maintenance.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -17,10 +18,15 @@ class _MaintenanceDetailScreenState extends State<MaintenanceDetailScreen> {
   bool _isLoading = true;
   String _errorMessage = '';
 
+  bool _didFetchData = false;
+
   @override
-  void initState() {
-    super.initState();
-    _fetchMaintenanceDetails();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didFetchData) {
+      _fetchMaintenanceDetails();
+      _didFetchData = true;
+    }
   }
 
   Future<void> _fetchMaintenanceDetails() async {
@@ -29,7 +35,7 @@ class _MaintenanceDetailScreenState extends State<MaintenanceDetailScreen> {
       _errorMessage = '';
     });
 
-    final result = await _apiService.getMantenimiento(widget.maintenanceId);
+    final result = await _apiService.getMantenimiento(context, widget.maintenanceId);
 
     if (mounted) {
       if (result['success']) {
@@ -48,9 +54,10 @@ class _MaintenanceDetailScreenState extends State<MaintenanceDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Detalle del Mantenimiento'), // TODO: Internationalize
+        title: Text(strings.maintenanceDetailTitle),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -61,43 +68,43 @@ class _MaintenanceDetailScreenState extends State<MaintenanceDetailScreen> {
                     children: [
                       Text(_errorMessage, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
                       const SizedBox(height: 16),
-                      ElevatedButton(onPressed: _fetchMaintenanceDetails, child: const Text('Reintentar')), // TODO: Internationalize
+                      ElevatedButton(onPressed: _fetchMaintenanceDetails, child: Text(strings.retry)),
                     ],
                   ),
                 )
               : _maintenance == null
-                  ? const Center(child: Text('No se encontraron detalles del mantenimiento.')) // TODO: Internationalize
-                  : _buildDetails(),
+                  ? Center(child: Text(strings.maintenanceDetailsNotFound))
+                  : _buildDetails(strings),
     );
   }
 
-  Widget _buildDetails() {
+  Widget _buildDetails(AppStrings strings) {
     final maintenance = _maintenance!;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildDetailCard('Equipo', [
-            _buildDetailRow('Nombre:', maintenance.equipo?.nombre ?? 'N/A'),
-            _buildDetailRow('Código:', maintenance.equipo?.codigo ?? 'N/A'),
+          _buildDetailCard(strings.equipmentLabel, [
+            _buildDetailRow(strings.nameLabel, maintenance.equipo?.nombre ?? strings.notAvailable),
+            _buildDetailRow(strings.codeLabel, maintenance.equipo?.codigo ?? strings.notAvailable),
           ]),
           const SizedBox(height: 16),
-          _buildDetailCard('Técnico', [
-            _buildDetailRow('Nombre:', maintenance.tecnico?.fullName ?? 'N/A'),
-            _buildDetailRow('Especialidad:', maintenance.tecnico?.especialidad ?? 'N/A'),
+          _buildDetailCard(strings.technicianLabel, [
+            _buildDetailRow(strings.nameLabel, maintenance.tecnico?.fullName ?? strings.notAvailable),
+            _buildDetailRow(strings.specialtyLabel, maintenance.tecnico?.especialidad ?? strings.notAvailable),
           ]),
           const SizedBox(height: 16),
-          _buildDetailCard('Detalles del Mantenimiento', [
-            _buildDetailRow('Fecha Programada:', DateFormat('dd/MM/yyyy').format(maintenance.fechaProgramada)),
-            _buildDetailRow('Estado:', maintenance.estado),
-            _buildDetailRow('Observaciones:', maintenance.observaciones ?? 'Ninguna'),
+          _buildDetailCard(strings.maintenanceDetails, [
+            _buildDetailRow(strings.scheduledDateLabel, DateFormat('dd/MM/yyyy').format(maintenance.fechaProgramada)),
+            _buildDetailRow(strings.statusLabel, maintenance.estado),
+            _buildDetailRow(strings.observationsLabel, maintenance.observaciones ?? strings.none),
           ]),
           const SizedBox(height: 16),
-          _buildDetailCard('Tareas', 
+          _buildDetailCard(strings.tasks, 
             maintenance.tareas.isNotEmpty
               ? maintenance.tareas.map((task) => Text('- ${task.nombre}')).toList()
-              : [const Text('No hay tareas asignadas.')]
+              : [Text(strings.noTasksAssigned)]
           ),
         ],
       ),
@@ -128,7 +135,7 @@ class _MaintenanceDetailScreenState extends State<MaintenanceDetailScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('$label ', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
           Expanded(child: Text(value)),
         ],
       ),

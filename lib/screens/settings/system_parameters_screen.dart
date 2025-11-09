@@ -1,3 +1,4 @@
+import 'package:endetech/constants/app_strings.dart';
 import 'package:flutter/material.dart';
 
 class SystemParametersScreen extends StatelessWidget {
@@ -5,12 +6,13 @@ class SystemParametersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('System Parameters'),
+        title: Text(strings.systemParameters),
       ),
-      body: const Center(
-        child: Text('System Parameters Screen'),
+      body: Center(
+        child: Text(strings.systemParametersScreenBody),
       ),
     );
   }

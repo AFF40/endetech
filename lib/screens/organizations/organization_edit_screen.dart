@@ -48,17 +48,18 @@ class _OrganizationEditScreenState extends State<OrganizationEditScreen> {
 
     final isEditing = widget.organization != null;
     final result = isEditing
-        ? await _apiService.updateOrganization(widget.organization!.id, data)
-        : await _apiService.createOrganization(data);
+        ? await _apiService.updateOrganization(context, widget.organization!.id, data)
+        : await _apiService.createOrganization(context, data);
 
     setState(() {
       _isLoading = false;
     });
 
     if (mounted) {
+      final strings = AppStrings.of(context);
       final message = result['success'] 
-          ? (result['data']?['message'] ?? (isEditing ? 'Organización actualizada' : 'Organización creada'))
-          : result['message'];
+          ? (result['data']?['message'] ?? (isEditing ? strings.organizationUpdated : strings.organizationCreated))
+          : result['message'] ?? strings.unexpectedErrorOccurred;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),

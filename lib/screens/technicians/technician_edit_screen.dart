@@ -56,17 +56,18 @@ class _TechnicianEditScreenState extends State<TechnicianEditScreen> {
 
     final isEditing = widget.technician != null;
     final result = isEditing
-        ? await _apiService.updateTecnico(widget.technician!.id, data)
-        : await _apiService.createTecnico(data);
+        ? await _apiService.updateTecnico(context, widget.technician!.id, data)
+        : await _apiService.createTecnico(context, data);
 
     setState(() {
       _isLoading = false;
     });
 
     if (mounted) {
+      final strings = AppStrings.of(context);
       final message = result['success'] 
-          ? (result['data']?['message'] ?? (isEditing ? 'Técnico actualizado' : 'Técnico creado'))
-          : result['message'];
+          ? (result['data']?['message'] ?? (isEditing ? strings.technicianUpdated : strings.technicianCreated))
+          : result['message'] ?? strings.unexpectedErrorOccurred;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
@@ -92,25 +93,25 @@ class _TechnicianEditScreenState extends State<TechnicianEditScreen> {
             children: [
               TextFormField(
                 controller: _nombreController,
-                decoration: const InputDecoration(labelText: 'Nombre', border: OutlineInputBorder()), // TODO: Internationalize
-                validator: (value) => (value == null || value.isEmpty) ? 'El nombre es requerido' : null, // TODO: Internationalize
+                decoration: InputDecoration(labelText: strings.name, border: const OutlineInputBorder()),
+                validator: (value) => (value == null || value.isEmpty) ? strings.firstNameRequired : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _primerApellidoController,
-                decoration: const InputDecoration(labelText: 'Primer Apellido', border: OutlineInputBorder()), // TODO: Internationalize
-                validator: (value) => (value == null || value.isEmpty) ? 'El primer apellido es requerido' : null, // TODO: Internationalize
+                decoration: InputDecoration(labelText: strings.firstName, border: const OutlineInputBorder()),
+                validator: (value) => (value == null || value.isEmpty) ? strings.lastNameRequired : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _segundoApellidoController,
-                decoration: const InputDecoration(labelText: 'Segundo Apellido (Opcional)', border: OutlineInputBorder()), // TODO: Internationalize
+                decoration: InputDecoration(labelText: strings.secondNameOptional, border: const OutlineInputBorder()),
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _especialidadController,
                 decoration: InputDecoration(labelText: strings.specialty, border: const OutlineInputBorder()),
-                validator: (value) => (value == null || value.isEmpty) ? 'La especialidad es requerida' : null, // TODO: Internationalize
+                validator: (value) => (value == null || value.isEmpty) ? strings.specialtyRequired : null,
               ),
               const SizedBox(height: 32),
               ElevatedButton(

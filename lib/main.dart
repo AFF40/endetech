@@ -88,7 +88,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Endetech',
+      onGenerateTitle: (context) => AppStrings.of(context).appName,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF0033A0),

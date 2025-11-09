@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'dart:math';
+import 'package:endetech/api_response_handler.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
@@ -20,267 +21,274 @@ class ApiService {
         // 'Authorization': 'Bearer $token',
       };
 
-  // Helper genérico para manejar las respuestas de la API
-  Future<Map<String, dynamic>> _handleResponse(http.Response response) async {
-    if (response.statusCode == 204) {
-        return {'success': true, 'data': {'message': 'Operación exitosa'}};
-    }
-
-    final responseData = jsonDecode(response.body);
-
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return {'success': true, 'data': responseData};
-    } else {
-      if (response.statusCode == 422) {
-        final errors = responseData['errors'];
-        final errorMessage = errors.values.first[0];
-        return {'success': false, 'message': errorMessage};
-      }
-      return {
-        'success': false,
-        'message': responseData['message'] ?? 'Ocurrió un error desconocido.'
-      };
-    }
-  }
-  
-  Map<String, dynamic> _handleConnectionError(error) {
-      return {'success': false, 'message': 'No se pudo conectar al servidor. Revisa tu conexión a internet.'};
-  }
-
   // --- Auth ---
-  Future<Map<String, dynamic>> register(Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> login(BuildContext context, Map<String, dynamic> data) async {
+    final handler = ApiResponseHandler(context);
+    final url = Uri.parse('$_baseUrl/login');
+    try {
+      final response = await http.post(url, headers: _headers, body: jsonEncode(data));
+      return handler.handleResponse(response);
+    } catch (e) {
+      return handler.handleConnectionError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> register(BuildContext context, Map<String, dynamic> data) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/register');
     try {
       final response = await http.post(url, headers: _headers, body: jsonEncode(data));
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
   // --- Equipos ---
-  Future<Map<String, dynamic>> getEquipos() async {
+  Future<Map<String, dynamic>> getEquipos(BuildContext context) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/equipos');
     try {
       final response = await http.get(url, headers: _headers);
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
-  Future<Map<String, dynamic>> createEquipo(Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> createEquipo(BuildContext context, Map<String, dynamic> data) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/equipos');
     try {
       final response = await http.post(url, headers: _headers, body: jsonEncode(data));
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
-  Future<Map<String, dynamic>> updateEquipo(int id, Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> updateEquipo(BuildContext context, int id, Map<String, dynamic> data) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/equipos/$id');
     try {
       final response = await http.put(url, headers: _headers, body: jsonEncode(data));
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
-  Future<Map<String, dynamic>> deleteEquipo(int id) async {
+  Future<Map<String, dynamic>> deleteEquipo(BuildContext context, int id) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/equipos/$id');
     try {
       final response = await http.delete(url, headers: _headers);
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
   // --- Mantenimientos ---
-  Future<Map<String, dynamic>> getMantenimientos() async {
+  Future<Map<String, dynamic>> getMantenimientos(BuildContext context) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/mantenimientos?with=equipo.organization');
     try {
       final response = await http.get(url, headers: _headers);
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
   
-  Future<Map<String, dynamic>> getMantenimiento(int id) async {
+  Future<Map<String, dynamic>> getMantenimiento(BuildContext context, int id) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/mantenimientos/$id?with=equipo.organization');
     try {
       final response = await http.get(url, headers: _headers);
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
-  Future<Map<String, dynamic>> createMantenimiento(Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> createMantenimiento(BuildContext context, Map<String, dynamic> data) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/mantenimientos');
     try {
       final response = await http.post(url, headers: _headers, body: jsonEncode(data));
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
-  Future<Map<String, dynamic>> updateMantenimiento(int id, Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> updateMantenimiento(BuildContext context, int id, Map<String, dynamic> data) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/mantenimientos/$id');
     final body = {...data, 'id': id};
     try {
       final response = await http.put(url, headers: _headers, body: jsonEncode(body));
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
-  Future<Map<String, dynamic>> deleteMantenimiento(int id) async {
+  Future<Map<String, dynamic>> deleteMantenimiento(BuildContext context, int id) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/mantenimientos/$id');
     try {
       final response = await http.delete(url, headers: _headers);
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
   // --- Organizaciones ---
-  Future<Map<String, dynamic>> getOrganizations() async {
+  Future<Map<String, dynamic>> getOrganizations(BuildContext context) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/organizations');
     try {
       final response = await http.get(url, headers: _headers);
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
-  Future<Map<String, dynamic>> getOrganization(int id) async {
+  Future<Map<String, dynamic>> getOrganization(BuildContext context, int id) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/organizations/$id');
     try {
       final response = await http.get(url, headers: _headers);
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
-  Future<Map<String, dynamic>> createOrganization(Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> createOrganization(BuildContext context, Map<String, dynamic> data) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/organizations');
     try {
       final response = await http.post(url, headers: _headers, body: jsonEncode(data));
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
-  Future<Map<String, dynamic>> updateOrganization(int id, Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> updateOrganization(BuildContext context, int id, Map<String, dynamic> data) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/organizations/$id');
     try {
       final response = await http.put(url, headers: _headers, body: jsonEncode(data));
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
-  Future<Map<String, dynamic>> deleteOrganization(int id) async {
+  Future<Map<String, dynamic>> deleteOrganization(BuildContext context, int id) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/organizations/$id');
     try {
       final response = await http.delete(url, headers: _headers);
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
   // --- Tareas ---
-  Future<Map<String, dynamic>> getTareas() async {
+  Future<Map<String, dynamic>> getTareas(BuildContext context) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/tareas');
     try {
       final response = await http.get(url, headers: _headers);
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
-  Future<Map<String, dynamic>> createTarea(Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> createTarea(BuildContext context, Map<String, dynamic> data) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/tareas');
     try {
       final response = await http.post(url, headers: _headers, body: jsonEncode(data));
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
-  Future<Map<String, dynamic>> updateTarea(int id, Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> updateTarea(BuildContext context, int id, Map<String, dynamic> data) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/tareas/$id');
     try {
       final response = await http.put(url, headers: _headers, body: jsonEncode(data));
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
-  Future<Map<String, dynamic>> deleteTarea(int id) async {
+  Future<Map<String, dynamic>> deleteTarea(BuildContext context, int id) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/tareas/$id');
     try {
       final response = await http.delete(url, headers: _headers);
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
   
   // --- Tecnicos ---
-  Future<Map<String, dynamic>> getTecnicos() async {
+  Future<Map<String, dynamic>> getTecnicos(BuildContext context) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/tecnicos');
     try {
       final response = await http.get(url, headers: _headers);
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
-  Future<Map<String, dynamic>> createTecnico(Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> createTecnico(BuildContext context, Map<String, dynamic> data) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/tecnicos');
     try {
       final response = await http.post(url, headers: _headers, body: jsonEncode(data));
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
-  Future<Map<String, dynamic>> updateTecnico(int id, Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> updateTecnico(BuildContext context, int id, Map<String, dynamic> data) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/tecnicos/$id');
     try {
       final response = await http.put(url, headers: _headers, body: jsonEncode(data));
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 
-  Future<Map<String, dynamic>> deleteTecnico(int id) async {
+  Future<Map<String, dynamic>> deleteTecnico(BuildContext context, int id) async {
+    final handler = ApiResponseHandler(context);
     final url = Uri.parse('$_baseUrl/tecnicos/$id');
     try {
       final response = await http.delete(url, headers: _headers);
-      return await _handleResponse(response);
+      return handler.handleResponse(response);
     } catch (e) {
-      return _handleConnectionError(e);
+      return handler.handleConnectionError(e);
     }
   }
 }

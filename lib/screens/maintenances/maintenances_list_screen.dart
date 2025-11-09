@@ -32,11 +32,21 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
   String? _selectedStatus;
   final List<String> _statuses = ['pendiente', 'completado'];
 
+  bool _didFetchData = false;
+
   @override
   void initState() {
     super.initState();
-    _fetchMaintenances();
     _searchController.addListener(_applyFilters);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didFetchData) {
+      _fetchMaintenances();
+      _didFetchData = true;
+    }
   }
 
   @override
@@ -53,8 +63,8 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
 
     // Fetch maintenances and equipments in parallel
     final results = await Future.wait([
-      _apiService.getMantenimientos(),
-      _apiService.getEquipos(),
+      _apiService.getMantenimientos(context),
+      _apiService.getEquipos(context),
     ]);
 
     if (!mounted) return;
@@ -169,7 +179,7 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
 
   Future<void> _deleteMaintenance(int id) async {
     if (!mounted) return;
-    final result = await _apiService.deleteMantenimiento(id);
+    final result = await _apiService.deleteMantenimiento(context, id);
     final strings = AppStrings.of(context);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -238,7 +248,7 @@ class _MaintenancesListScreenState extends State<MaintenancesListScreen> {
     );
 
     if (confirmed ?? false) {
-      final result = await _apiService.updateMantenimiento(maintenance.id, {'estado': newStatus});
+      final result = await _apiService.updateMantenimiento(context, maintenance.id, {'estado': newStatus});
       if(mounted) {
         final strings = AppStrings.of(context);
         ScaffoldMessenger.of(context).showSnackBar(

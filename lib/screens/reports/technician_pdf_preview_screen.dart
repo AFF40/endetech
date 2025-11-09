@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import '../../constants/app_strings.dart';
 import '../../models/technician.dart';
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
@@ -12,12 +13,13 @@ class TechnicianPdfPreviewScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Technician Report Preview'),
+        title: Text(strings.technicianReportPreviewTitle),
       ),
       body: PdfPreview(
-        build: (format) => _generatePdf(format, technicians),
+        build: (format) => _generatePdf(format, technicians, strings),
         canChangePageFormat: false,
         canChangeOrientation: false,
         canDebug: false,
@@ -26,15 +28,15 @@ class TechnicianPdfPreviewScreen extends StatelessWidget {
   }
 
   Future<Uint8List> _generatePdf(
-      PdfPageFormat format, List<Technician> technicians) async {
+      PdfPageFormat format, List<Technician> technicians, AppStrings strings) async {
     final pdf = pw.Document();
 
     pdf.addPage(
       pw.MultiPage(
         pageFormat: format.landscape,
-        header: (context) => pw.Text('Consolidated Technician Report', style: pw.Theme.of(context).header2),
+        header: (context) => pw.Text(strings.consolidatedTechnicianReport, style: pw.Theme.of(context).header2),
         build: (context) => [
-          _buildTechnicianTable(context, technicians),
+          _buildTechnicianTable(context, technicians, strings),
         ],
       ),
     );
@@ -42,8 +44,8 @@ class TechnicianPdfPreviewScreen extends StatelessWidget {
     return pdf.save();
   }
 
-  pw.Widget _buildTechnicianTable(pw.Context context, List<Technician> technicians) {
-    final headers = ['Name', 'Specialty'];
+  pw.Widget _buildTechnicianTable(pw.Context context, List<Technician> technicians, AppStrings strings) {
+    final headers = [strings.name, strings.specialty];
 
     final data = technicians.map((tech) {
       return [tech.fullName, tech.especialidad];

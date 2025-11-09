@@ -1,3 +1,4 @@
+import 'package:endetech/constants/app_strings.dart';
 import 'package:flutter/material.dart';
 
 class AuditLogScreen extends StatelessWidget {
@@ -5,12 +6,13 @@ class AuditLogScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Audit Log'),
+        title: Text(strings.auditLog),
       ),
-      body: const Center(
-        child: Text('Audit Log Screen'),
+      body: Center(
+        child: Text(strings.auditLogScreenBody),
       ),
     );
   }

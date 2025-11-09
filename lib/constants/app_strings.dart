@@ -8,6 +8,7 @@ abstract class AppStrings {
   }
 
   // Common
+  String get appName;
   String get save;
   String get cancel;
   String get delete;
@@ -33,6 +34,9 @@ abstract class AppStrings {
   String get fieldIsRequired;
   String get errorLoadingData;
   String get unexpectedErrorOccurred;
+  String get operationSuccessful;
+  String get connectionError;
+  String get unknownApiError;
   String get none;
   String get nameLabel;
   String get codeLabel;
@@ -40,6 +44,8 @@ abstract class AppStrings {
   String get scheduledDateLabel;
   String get statusLabel;
   String get observationsLabel;
+  String get equipmentLabel;
+  String get technicianLabel;
 
   // Parametrized
   String confirmDelete(String item);
@@ -79,8 +85,11 @@ abstract class AppStrings {
   String get reports;
   String get settings;
   String get userManagement;
+  String get userManagementScreenBody;
   String get systemParameters;
+  String get systemParametersScreenBody;
   String get auditLog;
+  String get auditLogScreenBody;
   String get logout;
   String get darkMode;
   String get language;
@@ -122,6 +131,10 @@ abstract class AppStrings {
   String get technicianCreated;
   String get firstName;
   String get secondNameOptional;
+  String get firstNameRequired;
+  String get lastNameRequired;
+  String get specialtyRequired;
+  String deleteTechnicianConfirmation(String technicianName);
   
   // Maintenances
   String get maintenances;
@@ -164,6 +177,10 @@ abstract class AppStrings {
   String get taskDeleted;
   String get taskUpdated;
   String get taskCreated;
+  String get editTaskTooltip;
+  String get deleteTaskTooltip;
+  String get nameRequired;
+  String get descriptionRequired;
 
   // Organizations
   String get organization;
@@ -189,11 +206,14 @@ abstract class AppStrings {
   String get allEquipments;
   String get startDate;
   String get endDate;
+  String get technicianReportPreviewTitle;
+  String get consolidatedTechnicianReport;
 }
 
 // English Implementations
 class EnStrings implements AppStrings {
   // Common
+  @override String get appName => 'Endetech';
   @override String get save => 'Save';
   @override String get cancel => 'Cancel';
   @override String get delete => 'Delete';
@@ -202,7 +222,7 @@ class EnStrings implements AppStrings {
   @override String get type => 'Type';
   @override String get brand => 'Brand';
   @override String get name => 'Name';
-  @override String get description => 'Descripcion';
+  @override String get description => 'Description';
   @override String get date => 'Date';
   @override String get allStatuses => 'All Statuses';
   @override String get allTypes => 'All Types';
@@ -219,6 +239,9 @@ class EnStrings implements AppStrings {
   @override String get fieldIsRequired => 'This field is required';
   @override String get errorLoadingData => 'Error loading data';
   @override String get unexpectedErrorOccurred => 'An unexpected error occurred';
+  @override String get operationSuccessful => 'Operation successful';
+  @override String get connectionError => 'Could not connect to the server. Please check your internet connection.';
+  @override String get unknownApiError => 'An unknown API error occurred.';
   @override String get none => 'None';
   @override String get nameLabel => 'Name:';
   @override String get codeLabel => 'Code:';
@@ -226,6 +249,8 @@ class EnStrings implements AppStrings {
   @override String get scheduledDateLabel => 'Scheduled Date:';
   @override String get statusLabel => 'Status:';
   @override String get observationsLabel => 'Observations:';
+  @override String get equipmentLabel => 'Equipment';
+  @override String get technicianLabel => 'Technician';
 
   // Parametrized
   @override String confirmDelete(String item) => 'Are you sure you want to delete ${item}?';
@@ -265,8 +290,11 @@ class EnStrings implements AppStrings {
   @override String get reports => 'Reports';
   @override String get settings => 'Settings';
   @override String get userManagement => 'User/Role Management';
+  @override String get userManagementScreenBody => 'User/Role Management Screen';
   @override String get systemParameters => 'System Parameters';
+  @override String get systemParametersScreenBody => 'System Parameters Screen';
   @override String get auditLog => 'Audit Log';
+  @override String get auditLogScreenBody => 'Audit Log Screen';
   @override String get logout => 'Logout';
   @override String get darkMode => 'Dark Mode';
   @override String get language => 'Language';
@@ -308,6 +336,10 @@ class EnStrings implements AppStrings {
   @override String get technicianCreated => 'Technician created';
   @override String get firstName => 'First Name';
   @override String get secondNameOptional => 'Second Name (Optional)';
+  @override String get firstNameRequired => 'First name is required';
+  @override String get lastNameRequired => 'Last name is required';
+  @override String get specialtyRequired => 'Specialty is required';
+  @override String deleteTechnicianConfirmation(String technicianName) => 'Are you sure you want to delete ${technicianName}?';
   
   // Maintenances
   @override String get maintenances => 'Maintenances';
@@ -336,7 +368,7 @@ class EnStrings implements AppStrings {
   @override String get addTask => 'Add Task';
   @override String get searchTasks => 'Search tasks...';
   @override String get taskTemplates => 'Task Templates';
-  @override String get taskDescription => 'Task Descripcion';
+  @override String get taskDescription => 'Task Description';
   @override String get editTaskTemplate => 'Edit Task';
   @override String get addTaskTemplate => 'Add Task';
   @override String get deleteTaskTemplate => 'Delete Task';
@@ -350,6 +382,10 @@ class EnStrings implements AppStrings {
   @override String get taskDeleted => 'Task deleted';
   @override String get taskUpdated => 'Task updated';
   @override String get taskCreated => 'Task created';
+  @override String get editTaskTooltip => 'Edit';
+  @override String get deleteTaskTooltip => 'Delete';
+  @override String get nameRequired => 'Name is required';
+  @override String get descriptionRequired => 'Description is required';
 
   // Organizations
   @override String get organization => 'Organization';
@@ -375,11 +411,14 @@ class EnStrings implements AppStrings {
   @override String get allEquipments => 'All Equipments';
   @override String get startDate => 'Start Date';
   @override String get endDate => 'End Date';
+  @override String get technicianReportPreviewTitle => 'Technician Report Preview';
+  @override String get consolidatedTechnicianReport => 'Consolidated Technician Report';
 }
 
 // Spanish Implementations
 class EsStrings implements AppStrings {
   // Common
+  @override String get appName => 'Endetech';
   @override String get save => 'Guardar';
   @override String get cancel => 'Cancelar';
   @override String get delete => 'Eliminar';
@@ -405,6 +444,9 @@ class EsStrings implements AppStrings {
   @override String get fieldIsRequired => 'Este campo es requerido';
   @override String get errorLoadingData => 'Error al cargar los datos';
   @override String get unexpectedErrorOccurred => 'Ocurrió un error inesperado';
+  @override String get operationSuccessful => 'Operación exitosa';
+  @override String get connectionError => 'No se pudo conectar al servidor. Revisa tu conexión a internet.';
+  @override String get unknownApiError => 'Ocurrió un error desconocido en la API.';
   @override String get none => 'Ninguna';
   @override String get nameLabel => 'Nombre:';
   @override String get codeLabel => 'Código:';
@@ -412,6 +454,8 @@ class EsStrings implements AppStrings {
   @override String get scheduledDateLabel => 'Fecha Programada:';
   @override String get statusLabel => 'Estado:';
   @override String get observationsLabel => 'Observaciones:';
+  @override String get equipmentLabel => 'Equipo';
+  @override String get technicianLabel => 'Técnico';
 
   // Parametrized
   @override String confirmDelete(String item) => '¿Estás seguro de que quieres eliminar ${item}?';
@@ -451,8 +495,11 @@ class EsStrings implements AppStrings {
   @override String get reports => 'Informes';
   @override String get settings => 'Configuración';
   @override String get userManagement => 'Gestión de Usuarios/Roles';
+  @override String get userManagementScreenBody => 'Pantalla de Gestión de Usuarios/Roles';
   @override String get systemParameters => 'Parámetros del Sistema';
+  @override String get systemParametersScreenBody => 'Pantalla de Parámetros del Sistema';
   @override String get auditLog => 'Registro de Auditoría';
+  @override String get auditLogScreenBody => 'Pantalla de Registro de Auditoría';
   @override String get logout => 'Cerrar Sesión';
   @override String get darkMode => 'Modo Oscuro';
   @override String get language => 'Idioma';
@@ -494,6 +541,10 @@ class EsStrings implements AppStrings {
   @override String get technicianCreated => 'Técnico creado';
   @override String get firstName => 'Primer Apellido';
   @override String get secondNameOptional => 'Segundo Apellido (Opcional)';
+  @override String get firstNameRequired => 'El nombre es requerido';
+  @override String get lastNameRequired => 'El primer apellido es requerido';
+  @override String get specialtyRequired => 'La especialidad es requerida';
+  @override String deleteTechnicianConfirmation(String technicianName) => '¿Estás seguro de que quieres eliminar a ${technicianName}?';
   
   // Maintenances
   @override String get maintenances => 'Mantenimientos';
@@ -536,6 +587,10 @@ class EsStrings implements AppStrings {
   @override String get taskDeleted => 'Tarea eliminada';
   @override String get taskUpdated => 'Tarea actualizada';
   @override String get taskCreated => 'Tarea creada';
+  @override String get editTaskTooltip => 'Editar';
+  @override String get deleteTaskTooltip => 'Eliminar';
+  @override String get nameRequired => 'El nombre es requerido';
+  @override String get descriptionRequired => 'La descripción es requerida';
 
   // Organizations
   @override String get organization => 'Organización';
@@ -561,4 +616,6 @@ class EsStrings implements AppStrings {
   @override String get allEquipments => 'Todos los equipos';
   @override String get startDate => 'Fecha de Inicio';
   @override String get endDate => 'Fecha de Fin';
+  @override String get technicianReportPreviewTitle => 'Vista Previa de Informe de Técnicos';
+  @override String get consolidatedTechnicianReport => 'Informe Consolidado de Técnicos';
 }

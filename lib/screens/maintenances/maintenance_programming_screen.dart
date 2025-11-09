@@ -39,13 +39,21 @@ class _MaintenanceProgrammingScreenState
   String _errorMessage = '';
   bool _isSaving = false;
 
-  // Represents the status: true for 'pendiente', false for 'completado'
-  bool _isPending = true; 
+  bool _isPending = true;
+  bool _didFetchData = false;
 
   @override
   void initState() {
     super.initState();
-    _initializeScreen();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didFetchData) {
+      _initializeScreen();
+      _didFetchData = true;
+    }
   }
 
   @override
@@ -62,9 +70,9 @@ class _MaintenanceProgrammingScreenState
 
     try {
       final results = await Future.wait([
-        _apiService.getTareas(),
-        _apiService.getEquipos(),
-        _apiService.getTecnicos(),
+        _apiService.getTareas(context),
+        _apiService.getEquipos(context),
+        _apiService.getTecnicos(context),
       ]);
 
       if (!mounted) return;
@@ -162,8 +170,8 @@ class _MaintenanceProgrammingScreenState
 
     final isEditing = widget.maintenanceToEdit != null;
     final result = isEditing
-        ? await _apiService.updateMantenimiento(widget.maintenanceToEdit!.id, data)
-        : await _apiService.createMantenimiento(data);
+        ? await _apiService.updateMantenimiento(context, widget.maintenanceToEdit!.id, data)
+        : await _apiService.createMantenimiento(context, data);
 
     setState(() {
       _isSaving = false;
